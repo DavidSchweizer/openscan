@@ -44,7 +44,6 @@ namespace topencv01
         {
 
         }
-
         private string xyS(float x, float y)
         {
             return String.Format("({0};{1})", Math.Round(x, 1), Math.Round(y, 1));
@@ -74,7 +73,9 @@ namespace topencv01
                threshold, //threshold
                minLineWidth, //min Line width
                gap); //gap between lines
-            CVGridData gridData = new CVGridData(lines);
+            OCVGridData gridData = new OCVGridData(lines);
+            OCVGrid grid = new OCVGrid(gridData);
+
             using (StreamWriter sw = new StreamWriter("lines.dmp"))
             {
                 foreach (LineSegment2D line in lines)
@@ -82,117 +83,138 @@ namespace topencv01
                     sw.WriteLine("line: (direction) {0} (P1) {1}  (P2) {2}   len: {3}", xyS(line.Direction.X, line.Direction.Y), xyS(line.P1.X, line.P1.Y), xyS(line.P2.X, line.P2.Y), line.Length);
                 }
                 sw.WriteLine("HorizontalLines: ");
-                foreach(CVLineData line in gridData.HorizontalLines)
+                foreach(OCVLineData line in gridData.HorizontalLines)
                 {
                     sw.WriteLine("line: Y = {0,1}, len = {1,1}", line.GetY(), line.Length);
                 }
                 sw.WriteLine("Vertical Lines: ");
-                foreach (CVLineData line in gridData.VerticalLines)
+                foreach (OCVLineData line in gridData.VerticalLines)
                 {
                     sw.WriteLine("line: X = {0,1}, len = {1,1}", line.GetX(), line.Length);
                 }
+                grid.Dump(sw);
             }
             Image<Bgr, Byte> lineImage = img1.CopyBlank();
             foreach (LineSegment2D line in lines)
                 lineImage.Draw(line, new Bgr(Color.Green), 2);
-            pictureBox3.Image = lineImage.Bitmap;
-
-
-        }
-    }
-
-    class CVLineDataSorter : IComparer<CVLineData>
-    {
-        public int Compare(CVLineData x, CVLineData y)
-        {
-            if (x.IsVertical() && y.IsVertical())
+            foreach (OCVLineRangeData line in grid.HorizontalLines)
             {
-                if (x.GetX() < y.GetX())
-                    return -1;
-                else if (x.GetX() > y.GetX())
-                    return 1;
-                else
-                    return 0;
+                OCVLineData summ = line.GetSummaryLine();
+                if (summ.Length > 35)
+                    lineImage.Draw(summ.Line, new Bgr(Color.White), 2);
             }
-            else if (x.IsHorizontal() && y.IsHorizontal())
+            foreach (OCVLineRangeData line in grid.VerticalLines)
             {
-                if (x.GetY() < y.GetY())
-                    return -1;
-                else if (x.GetY() > y.GetY())
-                    return 1;
-                else
-                    return 0;
+                OCVLineData summ = line.GetSummaryLine();
+                if (summ.Length > 35)
+                    lineImage.Draw(summ.Line, new Bgr(Color.LightPink), 2);
             }
-            return 0;
+            OCVGridDefinition gridDef = grid.Analyze();
+            lineImage.Draw(new Rectangle(gridDef.TopLeft.X, gridDef.TopLeft.Y, gridDef.Width, gridDef.Height), new Bgr(Color.White), 2);
+            //for (int r = 0; r <= gridDef.Rows; r++)
+            //    for (int c = 0; c <= gridDef.Cols; c++)
+            //        lineImage.Draw(new LineSegment2D(new Point(gridDef.TopLeft.X + r * gridDef.RowSize, gridDef.TopLeft.Y + c * gridDef.ColSize),
+            //                                         new Point(gridDef.TopLeft.X + r * gridDef.RowSize, gridDef.TopLeft.Y + (c + 1) * gridDef.ColSize)),
+            //                                         new Bgr(Color.White), 2);
+            //pictureBox3.Image = lineImage.Bitmap;
+
         }
     }
-    public class CVLineData
-    {
-        LineSegment2D Line { get; }
-        double margin = 0.1;
-        public double Length { get { return Line.Length; } }
 
-        public CVLineData(LineSegment2D line)
-        {
-            Line = line;
-        }
+    //class OCVLineDataSorter : IComparer<OCVLineData>
+    //{
+    //    public int Compare(OCVLineData x, OCVLineData y)
+    //    {
+    //        if (x.IsVertical() && y.IsVertical())
+    //        {
+    //            if (x.GetX() < y.GetX())
+    //                return -1;
+    //            else if (x.GetX() > y.GetX())
+    //                return 1;
+    //            else
+    //                return 0;
+    //        }
+    //        else if (x.IsHorizontal() && y.IsHorizontal())
+    //        {
+    //            if (x.GetY() < y.GetY())
+    //                return -1;
+    //            else if (x.GetY() > y.GetY())
+    //                return 1;
+    //            else
+    //                return 0;
+    //        }
+    //        return 0;
+    //    }
+    //}
+    //public class OCVLineLevelData
+    //{
+    //    private bool _isHorizontal;
+    //    static double margin = 10;
+    //    private double minVal, maxVal;
+    //    private double averageVal;
+    //    public bool IsHorizontal { get { return _isHorizontal; } }
+    //    public List<OCVLineData> Lines;
 
-        private bool IsEqualValue(double value, double target)
-        {
-            return Math.Abs(value - target) < margin;
-        }
-        public bool IsHorizontal()
-        {
-            return IsEqualValue(Math.Round(Line.Direction.X,1), -1) && 
-                   IsEqualValue(Math.Round(Line.Direction.Y,1), 0);
-        }
-        public bool IsVertical()
-        {
-            return IsEqualValue(Math.Round(Line.Direction.X, 1), 0) &&
-                   IsEqualValue(Math.Round(Line.Direction.Y, 1), 1);
-        }
-        public double GetX()
-        {
-            return 0.5 * (Math.Round((double)Line.P1.X + Math.Round((double)Line.P2.X)));
-        }
-        public double GetY()
-        {
-            return 0.5 * (Math.Round((double)Line.P1.Y + Math.Round((double)Line.P2.Y)));
-        }
-        public double HorizontalDistance(CVLineData line2)
-        {
-            if (this.IsVertical() && line2.IsVertical())
-                return Math.Abs(GetX() - line2.GetX());
-            else
-                return -1;
-        }
-        public double VerticalDistance(CVLineData line2)
-        {
-            if (this.IsHorizontal() && line2.IsHorizontal())
-                return Math.Abs(GetY() - line2.GetY());
-            else
-                return -1;
-        }
-    }
-    public class CVGridData
-    {
-        public List<CVLineData> HorizontalLines;
-        public List<CVLineData> VerticalLines;
+    //    public OCVLineLevelData()
+    //    {
+    //        Lines = new List<OCVLineData>();
+    //    }
 
-        public CVGridData(LineSegment2D[] lines)
-        {
-            HorizontalLines = new List<CVLineData>();
-            VerticalLines = new List<CVLineData>();
-            foreach(LineSegment2D line in lines)
-            {
-                CVLineData newData = new CVLineData(line);
-                if (newData.IsHorizontal())
-                    HorizontalLines.Add(newData);
-                else if (newData.IsVertical())
-                    VerticalLines.Add(newData);
-            }
-            HorizontalLines.Sort(new CVLineDataSorter());
-            VerticalLines.Sort(new CVLineDataSorter());            
-        }
-    }
+    //    public bool AddLine(OCVLineData line)
+    //    {
+    //        if (!isInLevel(line))
+    //            return false;
+    //        Lines.Add(line);
+    //        if (Lines.Count == 1)
+    //        {
+    //            _isHorizontal = line.IsHorizontal();
+    //            if (IsHorizontal)
+    //            {
+    //                minVal = line.GetY() - margin / 2;
+    //            }
+    //            else
+    //            {
+    //                minVal = line.GetX() - margin / 2;
+    //            }
+    //            maxVal = minVal + margin;
+    //        }
+    //        else
+    //        {
+    //            double value = 0;
+    //            foreach(OCVLineData l in Lines)
+    //            {
+    //                if (IsHorizontal)
+    //                    value += l.GetY();
+    //                else
+    //                    value += l.GetX();
+    //            }
+    //            averageVal = value / Lines.Count;
+    //        }
+    //        return true;
+    //    }
+
+    //    private bool isInLevel(OCVLineData line)
+    //    {
+    //        if (Lines.Count == 0)
+    //            return line.IsHorizontal() || line.IsVertical();
+    //        else if (IsHorizontal)
+    //        {
+    //            return line.IsHorizontal() && line.GetY() <= maxVal && line.GetY() >= minVal;
+    //        }
+    //        else
+    //        {
+    //            return line.IsVertical() && line.GetX() <= maxVal && line.GetX() >= minVal;
+    //        }            
+    //    }
+
+    //    OCVLineData GetSummaryLine()
+    //    {
+    //        if (isHorizontal)
+    //        {
+    //            OCVLineData line = new OCVLineData(new Point ();
+    //        }
+    //    }
+    //}
+
+    
 }
