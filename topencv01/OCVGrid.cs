@@ -17,101 +17,128 @@ namespace topencv01
         public int Rows, Cols;
         public Point TopLeft;
         public Point BottomRight;
-        public int RowSize, ColSize;
+        private double RowSize, ColSize;
         public int Width { get { return BottomRight.X - TopLeft.X; } }
         public int Height { get { return BottomRight.Y - TopLeft.Y; } }
+
+        public OCVGridDefinition(Point topLeft, Point bottomRight, int rows, int cols)
+        {
+            TopLeft = topLeft;
+            BottomRight = bottomRight;
+            Rows = 7; //rows;
+            Cols = 7; //cols;
+            ColSize = (1.0 * (BottomRight.X - TopLeft.X) / Cols);
+            RowSize = (1.0 * (BottomRight.Y - TopLeft.Y) / Rows);
+        }
+
+        public int RowLocation(int row)
+        {
+            return (int)(TopLeft.Y + row * RowSize);
+        }
+        public int ColLocation(int col)
+        {
+            return (int)(TopLeft.X + col * ColSize);
+        }
 
     }
 
     class OCVGrid
     {
-        public List<OCVLineRangeData> HorizontalLines;
-        public List<OCVLineRangeData> VerticalLines;
+        public List<OCVCombinedLinesData> HorizontalLines;
+        public List<OCVCombinedLinesData> VerticalLines;
         public OCVGrid()
         {
-            HorizontalLines = new List<OCVLineRangeData>();
-            VerticalLines = new List<OCVLineRangeData>();
+            HorizontalLines = new List<OCVCombinedLinesData>();
+            VerticalLines = new List<OCVCombinedLinesData>();
         }
         public OCVGrid(OCVGridData data) : this()
         {
-            CopyLines(data.HorizontalLines, HorizontalLines, getNewHorizontalRange);
-            CopyLines(data.VerticalLines, VerticalLines, getNewVerticalRange);
+            CopyLines(data.HorizontalLines, HorizontalLines, getNewHorizontalMember);
+            CopyLines(data.VerticalLines, VerticalLines, getNewVerticalMember);
+        }
+        private void RemoveSmallLines(double threshold)
+        {
+            int i = 0;
+            while (i < HorizontalLines.Count)
+                if (HorizontalLines[i].Length() < threshold)
+                    HorizontalLines.RemoveAt(i);
+                else i++;
+            i = 0;
+            while (i < VerticalLines.Count)
+                if (VerticalLines[i].Length() < threshold)
+                    VerticalLines.RemoveAt(i);
+                else i++;
         }
         public OCVGridDefinition Analyze()
         {
-            OCVGridDefinition result = new OCVGridDefinition();
             double left = OCVConst.REALLYLARGE, top = OCVConst.REALLYLARGE, right = -OCVConst.REALLYLARGE, bottom = -OCVConst.REALLYLARGE;
+            // remove lines that are too small
+            RemoveSmallLines(100);
         // analyze horizontal lines
-            result.Rows = 0;
-            foreach (OCVLineRangeData range in HorizontalLines)
+            int rows = 0;
+            foreach (OCVCombinedLinesData linesGroup in HorizontalLines)
             {
-                if (range.Length() > 100)
-                {
-                    result.Rows++;
-                    OCVLineData rangeLine = range.GetSummaryLine();
-                    if (rangeLine.GetMinValue() < top)
-                        top = rangeLine.GetMinValue();
-                    if (rangeLine.GetMaxValue() > bottom)
-                         bottom = rangeLine.GetMaxValue();
-                }
+                rows++;
+                OCVLineData summaryLine = linesGroup.GetSummaryLine();
+                if (summaryLine.GetMinValue() < top)
+                    top = summaryLine.GetMinValue();
+                if (summaryLine.GetMaxValue() > bottom)
+                    bottom = summaryLine.GetMaxValue();                
             }
             
             // analyze vertical lines
-            result.Cols = 0;
-            foreach (OCVLineRangeData range in VerticalLines)
+            int cols = 0;
+            foreach (OCVCombinedLinesData linesGroup in VerticalLines)
             {
-                if (range.Length() > 100)
-                {
-                    result.Cols++;
-                    OCVLineData rangeLine = range.GetSummaryLine();
-                    if (rangeLine.GetMinValue() < left)
-                        left = rangeLine.GetMinValue();
-                    if (rangeLine.GetMaxValue() > right)
-                        right = rangeLine.GetMaxValue();
-                }
+                cols++;
+                OCVLineData summaryLine = linesGroup.GetSummaryLine();
+                if (summaryLine.GetMinValue() < left)
+                    left = summaryLine.GetMinValue();
+                if (summaryLine.GetMaxValue() > right)
+                    right = summaryLine.GetMaxValue();
             }
-            result.TopLeft = new Point((int) left, (int)top);
-            result.BottomRight = new Point((int) right, (int)bottom);
+            OCVGridDefinition result = new OCVGridDefinition(new Point((int)left, (int)top),
+                                                            new Point((int)right, (int)bottom),
+                                                            rows, cols
+                                                            );
 
-            result.ColSize = (result.BottomRight.X - result.TopLeft.X) / result.Cols;
-            result.RowSize = Math.Abs(result.BottomRight.Y - result.TopLeft.Y) / result.Cols;
             return result;
         }
-
-        private delegate OCVLineRangeData getNewRange();
-        private OCVLineRangeData getNewHorizontalRange()
+        
+        private delegate OCVCombinedLinesData getNewMember();
+        private OCVCombinedLinesData getNewHorizontalMember()
         {
-            return new OCVHorizontalLineRangeData();
+            return new OCVCombinedHorizontalLinesData();
         }
-        private OCVLineRangeData getNewVerticalRange()
+        private OCVCombinedLinesData getNewVerticalMember()
         {
-            return new OCVVerticalLineRangeData();
+            return new OCVCombinedVerticalLinesData();
         }
-        private void CopyLines(List<OCVLineData> lines, List<OCVLineRangeData> ranges, getNewRange GetNewRange)
+        private void CopyLines(List<OCVLineData> lines, List<OCVCombinedLinesData> combinedLines, getNewMember GetNewMember)
         {
             foreach (OCVLineData line in lines)            
             {
-                OCVLineRangeData range = null;
-                for (int i = 0; i < ranges.Count && range == null; i++)
-                    if (ranges[i].IsInRange(line))
+                OCVCombinedLinesData combinedLine = null;
+                for (int i = 0; i < combinedLines.Count && combinedLine == null; i++)
+                    if (combinedLines[i].IsInRange(line))
                     {
-                        range = ranges[i];
+                        combinedLine = combinedLines[i];
                     }
-                if (range == null)
+                if (combinedLine == null)
                 {
-                    ranges.Add(range = GetNewRange());
+                    combinedLines.Add(combinedLine = GetNewMember());
                 }
-                range.AddLine(line);
+                combinedLine.AddLine(line);
             }
         }
         public void Dump(StreamWriter sw)
         {
             sw.WriteLine("horizontal lines:");
-            foreach (OCVLineRangeData range in HorizontalLines)
-                range.Dump(sw);
+            foreach (OCVCombinedLinesData combinedLine in HorizontalLines)
+                combinedLine.Dump(sw);
             sw.WriteLine("vertical lines:");
-            foreach (OCVLineRangeData range in VerticalLines)
-                range.Dump(sw);
+            foreach (OCVCombinedLinesData combinedLine in VerticalLines)
+                combinedLine.Dump(sw);
         }
     }
 
@@ -196,49 +223,22 @@ namespace topencv01
         }
     }
 
-    //class OCVLineDataSorter : IComparer<OCVLineData>
-    //{
-    //    public int Compare(OCVLineData x, OCVLineData y)
-    //    {
-    //        if (x.IsVertical() && y.IsVertical())
-    //        {
-    //            if (x.GetX() < y.GetX())
-    //                return -1;
-    //            else if (x.GetX() > y.GetX())
-    //                return 1;
-    //            else
-    //                return 0;
-    //        }
-    //        else if (x.IsHorizontal() && y.IsHorizontal())
-    //        {
-    //            if (x.GetY() < y.GetY())
-    //                return -1;
-    //            else if (x.GetY() > y.GetY())
-    //                return 1;
-    //            else
-    //                return 0;
-    //        }
-    //        return 0;
-    //    }
-    //}
-
-    public abstract class OCVLineRangeData
+    public abstract class OCVCombinedLinesData
     {
         private double minRange, maxRange;
         public double midRange;
         public double minVal, maxVal;
+        public double minLength, maxLength;
         protected PointF Direction;
         protected IComparer<OCVLineData> sorter;
         public List<OCVLineData> Lines;
 
-        public OCVLineRangeData(PointF direction)
+        public OCVCombinedLinesData(PointF direction)
         {
             Lines = new List<OCVLineData>();
             Direction = direction;
-            minVal = OCVConst.REALLYLARGE;
-            maxVal = -OCVConst.REALLYLARGE;
+            minRange = -OCVConst.REALLYLARGE; // note: first line is in range
             maxRange = OCVConst.REALLYLARGE;
-            minRange = -OCVConst.REALLYLARGE;
         }
 
         protected abstract double GetLocation(OCVLineData line);
@@ -256,32 +256,44 @@ namespace topencv01
                 return (GetLocation(line) <= maxRange && GetLocation(line) >= minRange);
         }
 
+        private void ReCompute()
+        {
+            minVal = OCVConst.REALLYLARGE;
+            maxVal = -OCVConst.REALLYLARGE;
+            minRange = OCVConst.REALLYLARGE;
+            maxRange = -OCVConst.REALLYLARGE;
+            minLength = OCVConst.REALLYLARGE;
+            maxLength = -OCVConst.REALLYLARGE;
+            foreach(OCVLineData line in Lines)
+            {
+                double value = 0;
+                value += GetLocation(line);                
+                midRange = value / Lines.Count;
+                minRange = midRange - OCVConst.RangeMargin / 2;
+                // what if one of the lines now is outside of margin?
+                if (line.GetMinValue() < minVal)
+                    minVal = line.GetMinValue();
+                if (line.GetMaxValue() > maxVal)
+                    maxVal = line.GetMaxValue();
+                if (line.Length < minLength)
+                    minLength = line.Length;
+                if (line.Length > maxLength)
+                    maxLength = line.Length;
+            }
+            maxRange = minRange + OCVConst.RangeMargin;
+        }
+
+        private void RemoveLine(OCVLineData line)
+        {
+            Lines.Remove(line);
+            ReCompute();
+        }
         public bool AddLine(OCVLineData line)
         {
             if (!IsInRange(line))
                 return false;
             Lines.Add(line);
-            if (Lines.Count == 1)
-            {
-                minRange = GetLocation(line) - OCVConst.RangeMargin / 2;
-                midRange = GetLocation(line);
-            }
-            else
-            {
-                double value = 0;
-                foreach (OCVLineData l in Lines)
-                {
-                    value += GetLocation(l);
-                }
-                midRange = value / Lines.Count;
-                minRange = midRange - OCVConst.RangeMargin / 2;
-                // what if one of the lines now is outside of margin?
-            }
-            maxRange = minRange + OCVConst.RangeMargin;
-            if (line.GetMinValue() < minVal)
-                minVal = line.GetMinValue();
-            if (line.GetMaxValue() > maxVal)
-                maxVal = line.GetMaxValue();
+            ReCompute();
             Sort();
             return true;
         }
@@ -303,6 +315,14 @@ namespace topencv01
                 line.Dump(sw);
             }
         }
+        //public void RemoveSmallLines(double threshold)
+        //{
+        //    int i = 0;
+        //    while (i < Lines.Count)
+        //        if (Lines[i].Length > threshold)
+        //            i++;
+        //        else RemoveLine(Lines[i]);
+        //}
     }
 
     class OCVHorizontalLineDataSorter : IComparer<OCVLineData>
@@ -330,9 +350,9 @@ namespace topencv01
         }
     }
 
-    public class OCVHorizontalLineRangeData : OCVLineRangeData
+    public class OCVCombinedHorizontalLinesData : OCVCombinedLinesData
     {
-        public OCVHorizontalLineRangeData() : base(new PointF(-1,0))
+        public OCVCombinedHorizontalLinesData() : base(new PointF(-1,0))
         {
             sorter = new OCVHorizontalLineDataSorter();
         }
@@ -345,9 +365,9 @@ namespace topencv01
             return new OCVLineData(new Point((int)minVal, (int)midRange), new Point((int)maxVal, (int)midRange));
         }
     }
-    public class OCVVerticalLineRangeData : OCVLineRangeData
+    public class OCVCombinedVerticalLinesData : OCVCombinedLinesData
     {
-        public OCVVerticalLineRangeData() : base(new PointF(0,1))
+        public OCVCombinedVerticalLinesData() : base(new PointF(0,1))
         {
             sorter = new OCVVerticalLineDataSorter();
         }

@@ -26,10 +26,12 @@ namespace topencv01
             InitializeComponent();
             pictureBox1.Image = img1.ToBitmap();
         }
+        static bool grayed = false;
 
         private void button1_Click(object sender, EventArgs e)
         {
-
+            if (grayed)
+                return;
             //Convert the image to grayscale and filter out the noise
 
             CvInvoke.CvtColor(img1, uimage, ColorConversion.Bgr2Gray);
@@ -37,7 +39,8 @@ namespace topencv01
             UMat pyrDown = new UMat();
             CvInvoke.PyrDown(uimage, pyrDown);
             CvInvoke.PyrUp(pyrDown, uimage);
-            pictureBox2.Image = uimage.Bitmap;
+            //pictureBox2.Image = uimage.Bitmap;
+            grayed = true;
         }
 
         private void pictureBox1_Click(object sender, EventArgs e)
@@ -51,6 +54,8 @@ namespace topencv01
 
         private void button2_Click(object sender, EventArgs e)
         {
+            button1_Click(this, e);
+
             // Canny and edge detection
             double cannyThreshold = 180.0;
             double cannyThresholdLinking = 120.0;
@@ -97,26 +102,38 @@ namespace topencv01
             Image<Bgr, Byte> lineImage = img1.CopyBlank();
             foreach (LineSegment2D line in lines)
                 lineImage.Draw(line, new Bgr(Color.Green), 2);
-            foreach (OCVLineRangeData line in grid.HorizontalLines)
+            foreach (OCVCombinedLinesData line in grid.HorizontalLines)
             {
                 OCVLineData summ = line.GetSummaryLine();
                 if (summ.Length > 35)
                     lineImage.Draw(summ.Line, new Bgr(Color.White), 2);
             }
-            foreach (OCVLineRangeData line in grid.VerticalLines)
+            foreach (OCVCombinedLinesData line in grid.VerticalLines)
             {
                 OCVLineData summ = line.GetSummaryLine();
                 if (summ.Length > 35)
                     lineImage.Draw(summ.Line, new Bgr(Color.LightPink), 2);
             }
+            pictureBox2.Image = lineImage.Bitmap;
+
+            Image<Bgr, Byte> lineImage2 = img1.CopyBlank();
             OCVGridDefinition gridDef = grid.Analyze();
-            lineImage.Draw(new Rectangle(gridDef.TopLeft.X, gridDef.TopLeft.Y, gridDef.Width, gridDef.Height), new Bgr(Color.White), 2);
-            //for (int r = 0; r <= gridDef.Rows; r++)
-            //    for (int c = 0; c <= gridDef.Cols; c++)
-            //        lineImage.Draw(new LineSegment2D(new Point(gridDef.TopLeft.X + r * gridDef.RowSize, gridDef.TopLeft.Y + c * gridDef.ColSize),
-            //                                         new Point(gridDef.TopLeft.X + r * gridDef.RowSize, gridDef.TopLeft.Y + (c + 1) * gridDef.ColSize)),
-            //                                         new Bgr(Color.White), 2);
-            //pictureBox3.Image = lineImage.Bitmap;
+            for (int r = 0; r <= gridDef.Rows; r++)
+            {
+                lineImage2.Draw(new LineSegment2D(new Point(gridDef.TopLeft.X, gridDef.RowLocation(r)),
+                                                  new Point(gridDef.TopLeft.X + gridDef.Width, gridDef.RowLocation(r))),
+                                                  new Bgr(Color.PeachPuff), 2);
+            }
+            for (int c = 0; c <= gridDef.Cols; c++)
+            {
+                lineImage2.Draw(new LineSegment2D(new Point(gridDef.ColLocation(c), gridDef.TopLeft.Y),
+                                                  new Point(gridDef.ColLocation(c), gridDef.TopLeft.Y +  + gridDef.Height)),
+                                                  new Bgr(Color.MediumTurquoise), 2);
+            }
+
+            lineImage2.Draw(new Rectangle(gridDef.TopLeft.X, gridDef.TopLeft.Y, gridDef.Width, gridDef.Height), new Bgr(Color.White), 2);
+
+            pictureBox3.Image = lineImage2.Bitmap;
 
         }
     }
