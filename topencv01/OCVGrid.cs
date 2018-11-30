@@ -12,6 +12,18 @@ using Emgu.CV.Structure;
 
 namespace topencv01
 {
+    public class OCVConst
+    {
+        static public double REALLYLARGE = Math.Pow(10, 20);
+        static public double RangeMargin = 20;
+        static private double PointMargin = 0.2;
+        static public double MinimalLineLength = 10;
+        static public bool IsEqualValue(double value, double target)
+        {
+            return Math.Abs(value - target) < PointMargin;
+        }
+    }
+
     public class OCVGridDefinition
     {
         public int Rows, Cols;
@@ -25,10 +37,10 @@ namespace topencv01
         {
             TopLeft = topLeft;
             BottomRight = bottomRight;
-            Rows = 7; //rows;
-            Cols = 7; //cols;
-            ColSize = (1.0 * (BottomRight.X - TopLeft.X) / Cols);
-            RowSize = (1.0 * (BottomRight.Y - TopLeft.Y) / Rows);
+            Rows = rows;
+            Cols = cols;
+            ColSize = (1.0 * (BottomRight.X - TopLeft.X) / (Cols - 1));
+            RowSize = (1.0 * (BottomRight.Y - TopLeft.Y) / (Rows - 1));
         }
 
         public int RowLocation(int row)
@@ -73,29 +85,38 @@ namespace topencv01
         {
             double left = OCVConst.REALLYLARGE, top = OCVConst.REALLYLARGE, right = -OCVConst.REALLYLARGE, bottom = -OCVConst.REALLYLARGE;
             // remove lines that are too small
-            RemoveSmallLines(100);
+            RemoveSmallLines(20);
         // analyze horizontal lines
             int rows = 0;
             foreach (OCVCombinedLinesData linesGroup in HorizontalLines)
             {
                 rows++;
                 OCVLineData summaryLine = linesGroup.GetSummaryLine();
-                if (summaryLine.GetMinValue() < top)
-                    top = summaryLine.GetMinValue();
-                if (summaryLine.GetMaxValue() > bottom)
-                    bottom = summaryLine.GetMaxValue();                
+                if (summaryLine.GetMinValue() < left)
+                    left = summaryLine.GetMinValue();
+                if (summaryLine.GetMaxValue() > right)
+                    right = summaryLine.GetMaxValue();
+                if (summaryLine.GetY() > top)
+                    top = summaryLine.GetY();
+                if (summaryLine.GetY() < bottom)
+                    bottom = summaryLine.GetY();
+
             }
-            
+
             // analyze vertical lines
             int cols = 0;
             foreach (OCVCombinedLinesData linesGroup in VerticalLines)
             {
                 cols++;
                 OCVLineData summaryLine = linesGroup.GetSummaryLine();
-                if (summaryLine.GetMinValue() < left)
-                    left = summaryLine.GetMinValue();
-                if (summaryLine.GetMaxValue() > right)
-                    right = summaryLine.GetMaxValue();
+                if (summaryLine.GetX() < left)
+                    left = summaryLine.GetX();
+                if (summaryLine.GetX() > right)
+                    right = summaryLine.GetX();
+                if (summaryLine.GetMinValue() < top)
+                    top = summaryLine.GetMinValue();
+                if (summaryLine.GetMaxValue() > bottom)
+                    bottom = summaryLine.GetMaxValue();
             }
             OCVGridDefinition result = new OCVGridDefinition(new Point((int)left, (int)top),
                                                             new Point((int)right, (int)bottom),
@@ -139,17 +160,6 @@ namespace topencv01
             sw.WriteLine("vertical lines:");
             foreach (OCVCombinedLinesData combinedLine in VerticalLines)
                 combinedLine.Dump(sw);
-        }
-    }
-
-    public class OCVConst
-    {
-        static public double REALLYLARGE = Math.Pow(10, 20);
-        static public double RangeMargin = 10;
-        static private double PointMargin = 0.1;
-        static public bool IsEqualValue(double value, double target)
-        {
-            return Math.Abs(value - target) < PointMargin;
         }
     }
 
@@ -248,8 +258,7 @@ namespace topencv01
             return maxVal - minVal;
         }
         public bool IsInRange(OCVLineData line)
-        {
-            
+        {            
             if (!OCVConst.IsEqualValue(line.Line.Direction.X, Direction.X) && OCVConst.IsEqualValue(line.Line.Direction.Y, Direction.Y))
                 return false;
             else 
@@ -264,13 +273,12 @@ namespace topencv01
             maxRange = -OCVConst.REALLYLARGE;
             minLength = OCVConst.REALLYLARGE;
             maxLength = -OCVConst.REALLYLARGE;
-            foreach(OCVLineData line in Lines)
+            double TotalValue = 0;
+            double TotalLen = 0;
+            foreach (OCVLineData line in Lines)
             {
-                double value = 0;
-                value += GetLocation(line);                
-                midRange = value / Lines.Count;
-                minRange = midRange - OCVConst.RangeMargin / 2;
-                // what if one of the lines now is outside of margin?
+                TotalValue += line.Length * GetLocation(line); // compute weighted average
+                TotalLen += line.Length;
                 if (line.GetMinValue() < minVal)
                     minVal = line.GetMinValue();
                 if (line.GetMaxValue() > maxVal)
@@ -280,7 +288,10 @@ namespace topencv01
                 if (line.Length > maxLength)
                     maxLength = line.Length;
             }
+            midRange = TotalValue / TotalLen;
+            minRange = midRange - OCVConst.RangeMargin / 2;
             maxRange = minRange + OCVConst.RangeMargin;
+            // what if one of the lines now is outside of margin?
         }
 
         private void RemoveLine(OCVLineData line)
@@ -392,6 +403,8 @@ namespace topencv01
             VerticalLines = new List<OCVLineData>();
             foreach (LineSegment2D line in lines)
             {
+                if (line.Length < OCVConst.MinimalLineLength)
+                    continue;
                 OCVLineData newData = new OCVLineData(line);
                 if (newData.IsHorizontal())
                     HorizontalLines.Add(newData);

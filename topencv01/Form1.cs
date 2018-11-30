@@ -11,6 +11,7 @@ using System.IO;
 using Emgu.CV;
 using Emgu.CV.CvEnum;
 using Emgu.CV.Structure;
+using Emgu.CV.Util;
 
 
 namespace topencv01
@@ -18,13 +19,16 @@ namespace topencv01
     public partial class Form1 : Form
     {
 
-        Image<Bgr, Byte> img1 = new Image<Bgr, Byte>("c:/temp/test1.jpg");
+        Image<Bgr, Byte> img1 = new Image<Bgr, Byte>("c:/temp/t13x3.jpg");
+        //Image<Bgr, Byte> img1 = new Image<Bgr, Byte>("c:/temp/test1.jpg");
         UMat uimage = new UMat();
+        Image<Bgr, Byte> lineImage;
 
         public Form1()
         {
             InitializeComponent();
             pictureBox1.Image = img1.ToBitmap();
+            lineImage = img1.CopyBlank();
         }
         static bool grayed = false;
 
@@ -52,69 +56,100 @@ namespace topencv01
             return String.Format("({0};{1})", Math.Round(x, 1), Math.Round(y, 1));
         }
 
-        private void button2_Click(object sender, EventArgs e)
+        UMat FindEdges()
         {
-            button1_Click(this, e);
-
             // Canny and edge detection
             double cannyThreshold = 180.0;
             double cannyThresholdLinking = 120.0;
-
             Double.TryParse(textBox1.Text, out cannyThreshold);
             Double.TryParse(textBox2.Text, out cannyThresholdLinking);
             UMat cannyEdges = new UMat();
             CvInvoke.Canny(uimage, cannyEdges, cannyThreshold, cannyThresholdLinking);
+            return cannyEdges;
+        }
+
+        LineSegment2D[] FindLines(UMat cannyEdges)
+        {
             int threshold = 20;
             Int32.TryParse(textBox3.Text, out threshold);
             double minLineWidth = 30;
             Double.TryParse(textBox4.Text, out minLineWidth);
             double gap = 10;
             Double.TryParse(textBox5.Text, out gap);
-
-            LineSegment2D[] lines = CvInvoke.HoughLinesP(
+            //UMat cannyEdgesCopy = cannyEdges.Clone();
+            //VectorOfVectorOfPoint contours = new VectorOfVectorOfPoint();
+            //CvInvoke.FindContours(cannyEdgesCopy, contours, null, RetrType.External, ChainApproxMethod.ChainApproxSimple);
+            //CvInvoke.DrawContours(lineImage, contours, -1, new MCvScalar(Color.Yellow.B, Color.Yellow.G, Color.Yellow.R), 1);
+            //pictureBox3.Image = lineImage.Bitmap;
+            return CvInvoke.HoughLinesP(
                cannyEdges,
                1, //Distance resolution in pixel-related units
                Math.PI / 45.0, //Angle resolution measured in radians.
                threshold, //threshold
                minLineWidth, //min Line width
                gap); //gap between lines
-            OCVGridData gridData = new OCVGridData(lines);
-            OCVGrid grid = new OCVGrid(gridData);
+        }
 
-            using (StreamWriter sw = new StreamWriter("lines.dmp"))
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            button1_Click(this, e);
+            UMat edges = FindEdges();
+            LineSegment2D[] lines = FindLines(edges);
+
+            foreach (LineSegment2D line in lines)
+                lineImage.Draw(line, new Bgr(Color.LightGreen), 2);
+            pictureBox2.Image = lineImage.Bitmap;
+
+            using (StreamWriter sw = new StreamWriter("lines0.dmp"))
             {
                 foreach (LineSegment2D line in lines)
                 {
-                    sw.WriteLine("line: (direction) {0} (P1) {1}  (P2) {2}   len: {3}", xyS(line.Direction.X, line.Direction.Y), xyS(line.P1.X, line.P1.Y), xyS(line.P2.X, line.P2.Y), line.Length);
+                    if (line.Length > 10)
+                        sw.WriteLine("line: (direction) {0} (P1) {1}  (P2) {2}   len: {3}", xyS(line.Direction.X, line.Direction.Y), xyS(line.P1.X, line.P1.Y), xyS(line.P2.X, line.P2.Y), line.Length);
+                    else if (line.Length > 0)
+                        sw.WriteLine("lijntje: (direction) {0} (P1) {1}  (P2) {2}   len: {3}", xyS(line.Direction.X, line.Direction.Y), xyS(line.P1.X, line.P1.Y), xyS(line.P2.X, line.P2.Y), line.Length);
+                    else
+                        sw.WriteLine("line: (point) {0}", xyS(line.P1.X, line.P1.Y));
                 }
-                sw.WriteLine("HorizontalLines: ");
-                foreach(OCVLineData line in gridData.HorizontalLines)
+            }
+            OCVGridData gridData = new OCVGridData(lines);
+            using (StreamWriter sw = new StreamWriter("lines.dmp"))
+            {
+                sw.WriteLine("------------------------------------------------");
+                sw.WriteLine("griddata (HorizontalLines): ");
+                foreach (OCVLineData line in gridData.HorizontalLines)
                 {
-                    sw.WriteLine("line: Y = {0,1}, len = {1,1}", line.GetY(), line.Length);
+                    sw.WriteLine("line: Y = {0}, X1 = {1} X2 = {2} len = {3}", line.GetY(), line.GetMinValue(), line.GetMaxValue(), line.Length);
                 }
-                sw.WriteLine("Vertical Lines: ");
+                sw.WriteLine("------------------------------------------------");
+                sw.WriteLine("griddata (Vertical Lines: ");
                 foreach (OCVLineData line in gridData.VerticalLines)
                 {
-                    sw.WriteLine("line: X = {0,1}, len = {1,1}", line.GetX(), line.Length);
+                    sw.WriteLine("line: X = {0}, Y1 = {1} Y2 = {2} len = {3}", line.GetX(), line.GetMinValue(), line.GetMaxValue(), line.Length);
                 }
+                sw.WriteLine("------------------------------------------------");
+            }
+            OCVGrid grid = new OCVGrid(gridData);
+            using (StreamWriter sw = new StreamWriter("grid.dmp"))
+            {
                 grid.Dump(sw);
             }
-            Image<Bgr, Byte> lineImage = img1.CopyBlank();
-            foreach (LineSegment2D line in lines)
-                lineImage.Draw(line, new Bgr(Color.Green), 2);
+
+            Image<Bgr, Byte> image3 = lineImage.CopyBlank();
+
             foreach (OCVCombinedLinesData line in grid.HorizontalLines)
             {
                 OCVLineData summ = line.GetSummaryLine();
-                if (summ.Length > 35)
-                    lineImage.Draw(summ.Line, new Bgr(Color.White), 2);
+                image3.Draw(summ.Line, new Bgr(Color.Azure), 2);
             }
             foreach (OCVCombinedLinesData line in grid.VerticalLines)
             {
                 OCVLineData summ = line.GetSummaryLine();
                 if (summ.Length > 35)
-                    lineImage.Draw(summ.Line, new Bgr(Color.LightPink), 2);
+                    image3.Draw(summ.Line, new Bgr(Color.LightPink), 2);
             }
-            pictureBox2.Image = lineImage.Bitmap;
+            pictureBox2.Image = image3.Bitmap;
 
             Image<Bgr, Byte> lineImage2 = img1.CopyBlank();
             OCVGridDefinition gridDef = grid.Analyze();
@@ -127,13 +162,22 @@ namespace topencv01
             for (int c = 0; c <= gridDef.Cols; c++)
             {
                 lineImage2.Draw(new LineSegment2D(new Point(gridDef.ColLocation(c), gridDef.TopLeft.Y),
-                                                  new Point(gridDef.ColLocation(c), gridDef.TopLeft.Y +  + gridDef.Height)),
+                                                  new Point(gridDef.ColLocation(c), gridDef.TopLeft.Y + +gridDef.Height)),
                                                   new Bgr(Color.MediumTurquoise), 2);
             }
 
             lineImage2.Draw(new Rectangle(gridDef.TopLeft.X, gridDef.TopLeft.Y, gridDef.Width, gridDef.Height), new Bgr(Color.White), 2);
 
             pictureBox3.Image = lineImage2.Bitmap;
+        }
+
+        private void textBox3_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void textBox5_TextChanged(object sender, EventArgs e)
+        {
 
         }
     }
