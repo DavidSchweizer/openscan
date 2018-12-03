@@ -29,7 +29,7 @@ namespace topencv01
         public int Rows, Cols;
         public Point TopLeft;
         public Point BottomRight;
-        private double RowSize, ColSize;
+        public double RowSize, ColSize;
         public int Width { get { return BottomRight.X - TopLeft.X; } }
         public int Height { get { return BottomRight.Y - TopLeft.Y; } }
 
@@ -39,8 +39,8 @@ namespace topencv01
             BottomRight = bottomRight;
             Rows = rows;
             Cols = cols;
-            ColSize = (1.0 * (BottomRight.X - TopLeft.X) / (Cols - 1));
-            RowSize = (1.0 * (BottomRight.Y - TopLeft.Y) / (Rows - 1));
+            ColSize = (1.0 * (BottomRight.X - TopLeft.X) / Cols);
+            RowSize = (1.0 * (BottomRight.Y - TopLeft.Y) / Rows);
         }
 
         public int RowLocation(int row)
@@ -81,13 +81,13 @@ namespace topencv01
                     VerticalLines.RemoveAt(i);
                 else i++;
         }
-        public OCVGridDefinition Analyze()
+        public OCVGridDefinition Analyze(double threshold)
         {
             double left = OCVConst.REALLYLARGE, top = OCVConst.REALLYLARGE, right = -OCVConst.REALLYLARGE, bottom = -OCVConst.REALLYLARGE;
             // remove lines that are too small
-            RemoveSmallLines(20);
-        // analyze horizontal lines
-            int rows = 0;
+            RemoveSmallLines(threshold);
+            // analyze horizontal lines
+            int rows = -1;
             foreach (OCVCombinedLinesData linesGroup in HorizontalLines)
             {
                 rows++;
@@ -100,11 +100,10 @@ namespace topencv01
                     top = summaryLine.GetY();
                 if (summaryLine.GetY() < bottom)
                     bottom = summaryLine.GetY();
-
             }
 
             // analyze vertical lines
-            int cols = 0;
+            int cols = -1;
             foreach (OCVCombinedLinesData linesGroup in VerticalLines)
             {
                 cols++;
@@ -122,8 +121,18 @@ namespace topencv01
                                                             new Point((int)right, (int)bottom),
                                                             rows, cols
                                                             );
-
             return result;
+        }
+        public OCVGridDefinition Analyze()
+        {
+            OCVGridDefinition tempResult = Analyze(20);
+            if (tempResult.Rows > 0 && tempResult.Cols > 0)
+            {
+                double rowsize = tempResult.Width / (tempResult.Rows + 1);
+                double colsize = tempResult.Width / (tempResult.Cols + 1);
+                return Analyze(((rowsize > colsize) ? rowsize : colsize) - 5);
+            }
+            return null;
         }
         
         private delegate OCVCombinedLinesData getNewMember();

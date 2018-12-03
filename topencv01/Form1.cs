@@ -11,6 +11,7 @@ using System.IO;
 using Emgu.CV;
 using Emgu.CV.CvEnum;
 using Emgu.CV.Structure;
+using Emgu.CV.OCR;
 using Emgu.CV.Util;
 
 
@@ -19,7 +20,7 @@ namespace topencv01
     public partial class Form1 : Form
     {
 
-        Image<Bgr, Byte> img1 = new Image<Bgr, Byte>("c:/temp/t13x3.jpg");
+        Image<Bgr, Byte> img1;
         //Image<Bgr, Byte> img1 = new Image<Bgr, Byte>("c:/temp/test1.jpg");
         UMat uimage = new UMat();
         Image<Bgr, Byte> lineImage;
@@ -27,24 +28,26 @@ namespace topencv01
         public Form1()
         {
             InitializeComponent();
+        }
+
+
+        private void LoadFile(string filename)
+        {
+            img1 = new Image<Bgr, Byte>(filename);
             pictureBox1.Image = img1.ToBitmap();
             lineImage = img1.CopyBlank();
-        }
-        static bool grayed = false;
-
-        private void button1_Click(object sender, EventArgs e)
-        {
-            if (grayed)
-                return;
             //Convert the image to grayscale and filter out the noise
-
             CvInvoke.CvtColor(img1, uimage, ColorConversion.Bgr2Gray);
             //use image pyr to remove noise
             UMat pyrDown = new UMat();
             CvInvoke.PyrDown(uimage, pyrDown);
             CvInvoke.PyrUp(pyrDown, uimage);
+
             //pictureBox2.Image = uimage.Bitmap;
-            grayed = true;
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
         }
 
         private void pictureBox1_Click(object sender, EventArgs e)
@@ -153,6 +156,7 @@ namespace topencv01
 
             Image<Bgr, Byte> lineImage2 = img1.CopyBlank();
             OCVGridDefinition gridDef = grid.Analyze();
+            listBox1.Items.Add(String.Format("{0} x {1}", gridDef.Rows, gridDef.Cols));
             for (int r = 0; r <= gridDef.Rows; r++)
             {
                 lineImage2.Draw(new LineSegment2D(new Point(gridDef.TopLeft.X, gridDef.RowLocation(r)),
@@ -169,6 +173,66 @@ namespace topencv01
             lineImage2.Draw(new Rectangle(gridDef.TopLeft.X, gridDef.TopLeft.Y, gridDef.Width, gridDef.Height), new Bgr(Color.White), 2);
 
             pictureBox3.Image = lineImage2.Bitmap;
+            testingpixels(gridDef);
+            CharacterTest(gridDef);
+        }
+
+        private void testingpixels(OCVGridDefinition gridDef)
+        {
+            int threshold = 250;
+
+            Matrix<Byte> matrix = new Matrix<Byte>(uimage.Rows, uimage.Cols, uimage.NumberOfChannels);
+            uimage.CopyTo(matrix);
+            using (StreamWriter sw = new StreamWriter("pixels.dmp"))
+            {
+                sw.WriteLine("------------------ROWS-------------------");
+                for (int r = 0; r < gridDef.Rows; r++)
+                {
+                    int rowLoc = (int)(gridDef.RowLocation(r) + gridDef.RowSize * 0.5);
+                    sw.WriteLine("*** row: {0}    (loc: {1})", r, rowLoc);
+                    for (int c = 1; c < gridDef.Cols; c++)
+                    {
+                        int loc = gridDef.ColLocation(c);
+                        sw.WriteLine("col {0}  location {1}", c, loc);
+                        int nBelow = 0;
+                        for (int col = loc - 10; col < loc + 10; col++)
+                        {
+                            if (col < 0 || col >= matrix.Cols)
+                                continue;
+                            byte value = matrix.Data[rowLoc, col];
+                            if (value < threshold)
+                                nBelow++;
+                            //sw.WriteLine("row: {0}  col: {1}  : {2}", row, col, value);
+                        }
+                        sw.WriteLine("col {0}  pct: {1} %", c, (nBelow / 20.0) * 100);
+                    }
+                    sw.WriteLine("***");
+                }
+                sw.WriteLine("------------------COLUMNS-------------------");
+                for (int c = 0; c < gridDef.Cols; c++)
+                {
+                    int colLoc = (int)(gridDef.ColLocation(c) + gridDef.ColSize * 0.5);
+                    sw.WriteLine("*** col: {0}    (loc: {1})", c, colLoc);
+                    for (int r = 1; r < gridDef.Rows; r++)
+                    {
+                        int loc = gridDef.RowLocation(r);
+                        sw.WriteLine("row {0}  location {1}", r, loc);
+                        int nBelow = 0;
+                        for (int row = loc - 10; row < loc + 10; row++)
+                        {
+                            if (row < 0 || row >= matrix.Cols)
+                                continue;
+                            byte value = matrix.Data[row, colLoc];
+                            if (value < threshold)
+                                nBelow++;
+                            //sw.WriteLine("row: {0}  col: {1}  : {2}", row, col, value);
+                        }
+                        sw.WriteLine("row {0}  pct: {1} %", r, (nBelow / 20.0) * 100);
+                    }
+                    sw.WriteLine("***");
+                }
+            }
+
         }
 
         private void textBox3_TextChanged(object sender, EventArgs e)
@@ -180,102 +244,63 @@ namespace topencv01
         {
 
         }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            if (ofd1.ShowDialog() == DialogResult.OK)
+            {
+                LoadFile(ofd1.FileName);
+            }
+        }
+
+        Tesseract _ocr;
+
+        void TestRowCol(Image<Gray,Byte> image, OCVGridDefinition gridDef, int row, int col, StreamWriter sw)
+        {
+            image.ROI = new Rectangle( (int)(gridDef.TopLeft.X + col * gridDef.ColSize - 5)
+                                     , (int)(gridDef.TopLeft.Y + row * gridDef.RowSize - 5)
+                                     , (int)(gridDef.ColSize - 10),
+                                       (int)(gridDef.RowSize - 10));
+            _ocr.SetImage(image);
+            if (_ocr.Recognize() != 0)
+                throw new Exception("Failed to recognize zie image");
+            Tesseract.Character[] characters = _ocr.GetCharacters();
+            sw.WriteLine("{0} characters recognized", characters.Length);
+            foreach (Tesseract.Character ch in characters)
+                sw.WriteLine("{0} ({1})", ch.Text, ch.Cost);
+
+        }
+        void CharacterTest(OCVGridDefinition gridDef)
+        {
+            const string dataPath = @"C:\Program Files (x86)\Tesseract-OCR\tessdata";
+
+            //create OCR engine
+            _ocr = new Tesseract(dataPath, "eng", OcrEngineMode.TesseractLstmCombined);
+            _ocr.SetVariable("tessedit_char_whitelist", "12345");
+
+
+            Image<Gray,Byte > image23 = uimage.ToImage<Gray, Byte>();
+            using (StreamWriter sw = new StreamWriter("ocr.txt"))
+            {
+                sw.Write("0, 0 (4) ");
+                TestRowCol(image23, gridDef, 0, 0, sw);
+                sw.Write("0, 2 (1) ");
+                TestRowCol(image23, gridDef, 0, 2, sw);
+                sw.Write("0, 5 (4) ");
+                TestRowCol(image23, gridDef, 0, 5, sw);
+                sw.Write("1, 4 (5) ");
+                TestRowCol(image23, gridDef, 1, 4, sw);
+                sw.Write("3, 0 (2) ");
+                TestRowCol(image23, gridDef, 3, 0, sw);
+                sw.Write("4, 2 (2) ");
+                TestRowCol(image23, gridDef, 4, 2, sw);
+                sw.Write("5, 4 (4) ");
+                TestRowCol(image23, gridDef, 5, 4, sw);
+            }
+
+
+        }
     }
-
-    //class OCVLineDataSorter : IComparer<OCVLineData>
-    //{
-    //    public int Compare(OCVLineData x, OCVLineData y)
-    //    {
-    //        if (x.IsVertical() && y.IsVertical())
-    //        {
-    //            if (x.GetX() < y.GetX())
-    //                return -1;
-    //            else if (x.GetX() > y.GetX())
-    //                return 1;
-    //            else
-    //                return 0;
-    //        }
-    //        else if (x.IsHorizontal() && y.IsHorizontal())
-    //        {
-    //            if (x.GetY() < y.GetY())
-    //                return -1;
-    //            else if (x.GetY() > y.GetY())
-    //                return 1;
-    //            else
-    //                return 0;
-    //        }
-    //        return 0;
-    //    }
-    //}
-    //public class OCVLineLevelData
-    //{
-    //    private bool _isHorizontal;
-    //    static double margin = 10;
-    //    private double minVal, maxVal;
-    //    private double averageVal;
-    //    public bool IsHorizontal { get { return _isHorizontal; } }
-    //    public List<OCVLineData> Lines;
-
-    //    public OCVLineLevelData()
-    //    {
-    //        Lines = new List<OCVLineData>();
-    //    }
-
-    //    public bool AddLine(OCVLineData line)
-    //    {
-    //        if (!isInLevel(line))
-    //            return false;
-    //        Lines.Add(line);
-    //        if (Lines.Count == 1)
-    //        {
-    //            _isHorizontal = line.IsHorizontal();
-    //            if (IsHorizontal)
-    //            {
-    //                minVal = line.GetY() - margin / 2;
-    //            }
-    //            else
-    //            {
-    //                minVal = line.GetX() - margin / 2;
-    //            }
-    //            maxVal = minVal + margin;
-    //        }
-    //        else
-    //        {
-    //            double value = 0;
-    //            foreach(OCVLineData l in Lines)
-    //            {
-    //                if (IsHorizontal)
-    //                    value += l.GetY();
-    //                else
-    //                    value += l.GetX();
-    //            }
-    //            averageVal = value / Lines.Count;
-    //        }
-    //        return true;
-    //    }
-
-    //    private bool isInLevel(OCVLineData line)
-    //    {
-    //        if (Lines.Count == 0)
-    //            return line.IsHorizontal() || line.IsVertical();
-    //        else if (IsHorizontal)
-    //        {
-    //            return line.IsHorizontal() && line.GetY() <= maxVal && line.GetY() >= minVal;
-    //        }
-    //        else
-    //        {
-    //            return line.IsVertical() && line.GetX() <= maxVal && line.GetX() >= minVal;
-    //        }            
-    //    }
-
-    //    OCVLineData GetSummaryLine()
-    //    {
-    //        if (isHorizontal)
-    //        {
-    //            OCVLineData line = new OCVLineData(new Point ();
-    //        }
-    //    }
-    //}
 
     
 }
