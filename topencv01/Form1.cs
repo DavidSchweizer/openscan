@@ -29,7 +29,7 @@ namespace topencv01
         {
             InitializeComponent();
         }
-       
+
 
         private void LoadFile(string filename)
         {
@@ -42,11 +42,12 @@ namespace topencv01
             UMat pyrDown = new UMat();
             CvInvoke.PyrDown(uimage, pyrDown);
             CvInvoke.PyrUp(pyrDown, uimage);
+
             //pictureBox2.Image = uimage.Bitmap;
         }
 
         private void button1_Click(object sender, EventArgs e)
-        {          
+        {
         }
 
         private void pictureBox1_Click(object sender, EventArgs e)
@@ -172,6 +173,66 @@ namespace topencv01
             lineImage2.Draw(new Rectangle(gridDef.TopLeft.X, gridDef.TopLeft.Y, gridDef.Width, gridDef.Height), new Bgr(Color.White), 2);
 
             pictureBox3.Image = lineImage2.Bitmap;
+            testingpixels(gridDef);
+            CharacterTest(gridDef);
+        }
+
+        private void testingpixels(OCVGridDefinition gridDef)
+        {
+            int threshold = 250;
+
+            Matrix<Byte> matrix = new Matrix<Byte>(uimage.Rows, uimage.Cols, uimage.NumberOfChannels);
+            uimage.CopyTo(matrix);
+            using (StreamWriter sw = new StreamWriter("pixels.dmp"))
+            {
+                sw.WriteLine("------------------ROWS-------------------");
+                for (int r = 0; r < gridDef.Rows; r++)
+                {
+                    int rowLoc = (int)(gridDef.RowLocation(r) + gridDef.RowSize * 0.5);
+                    sw.WriteLine("*** row: {0}    (loc: {1})", r, rowLoc);
+                    for (int c = 1; c < gridDef.Cols; c++)
+                    {
+                        int loc = gridDef.ColLocation(c);
+                        sw.WriteLine("col {0}  location {1}", c, loc);
+                        int nBelow = 0;
+                        for (int col = loc - 10; col < loc + 10; col++)
+                        {
+                            if (col < 0 || col >= matrix.Cols)
+                                continue;
+                            byte value = matrix.Data[rowLoc, col];
+                            if (value < threshold)
+                                nBelow++;
+                            //sw.WriteLine("row: {0}  col: {1}  : {2}", row, col, value);
+                        }
+                        sw.WriteLine("col {0}  pct: {1} %", c, (nBelow / 20.0) * 100);
+                    }
+                    sw.WriteLine("***");
+                }
+                sw.WriteLine("------------------COLUMNS-------------------");
+                for (int c = 0; c < gridDef.Cols; c++)
+                {
+                    int colLoc = (int)(gridDef.ColLocation(c) + gridDef.ColSize * 0.5);
+                    sw.WriteLine("*** col: {0}    (loc: {1})", c, colLoc);
+                    for (int r = 1; r < gridDef.Rows; r++)
+                    {
+                        int loc = gridDef.RowLocation(r);
+                        sw.WriteLine("row {0}  location {1}", r, loc);
+                        int nBelow = 0;
+                        for (int row = loc - 10; row < loc + 10; row++)
+                        {
+                            if (row < 0 || row >= matrix.Cols)
+                                continue;
+                            byte value = matrix.Data[row, colLoc];
+                            if (value < threshold)
+                                nBelow++;
+                            //sw.WriteLine("row: {0}  col: {1}  : {2}", row, col, value);
+                        }
+                        sw.WriteLine("row {0}  pct: {1} %", r, (nBelow / 20.0) * 100);
+                    }
+                    sw.WriteLine("***");
+                }
+            }
+
         }
 
         private void textBox3_TextChanged(object sender, EventArgs e)
@@ -192,16 +253,54 @@ namespace topencv01
             }
         }
 
-        void Characters()
-        {
-            Tesseract _ocr;
+        Tesseract _ocr;
 
-        //create OCR engine
- //           _ocr = new Tesseract(dataPath, "eng", OcrEngineMode.TesseractCubeCombined);
-  //         _ocr.SetVariable("tessedit_char_whitelist", "ABCDEFGHIJKLMNOPQRSTUVWXYZ-1234567890");
+        void TestRowCol(Image<Gray,Byte> image, OCVGridDefinition gridDef, int row, int col, StreamWriter sw)
+        {
+            image.ROI = new Rectangle( (int)(gridDef.TopLeft.X + col * gridDef.ColSize - 5)
+                                     , (int)(gridDef.TopLeft.Y + row * gridDef.RowSize - 5)
+                                     , (int)(gridDef.ColSize - 10),
+                                       (int)(gridDef.RowSize - 10));
+            _ocr.SetImage(image);
+            if (_ocr.Recognize() != 0)
+                throw new Exception("Failed to recognize zie image");
+            Tesseract.Character[] characters = _ocr.GetCharacters();
+            sw.WriteLine("{0} characters recognized", characters.Length);
+            foreach (Tesseract.Character ch in characters)
+                sw.WriteLine("{0} ({1})", ch.Text, ch.Cost);
 
         }
+        void CharacterTest(OCVGridDefinition gridDef)
+        {
+            const string dataPath = @"C:\Program Files (x86)\Tesseract-OCR\tessdata";
 
+            //create OCR engine
+            _ocr = new Tesseract(dataPath, "eng", OcrEngineMode.TesseractLstmCombined);
+            _ocr.SetVariable("tessedit_char_whitelist", "12345");
+
+
+            Image<Gray,Byte > image23 = uimage.ToImage<Gray, Byte>();
+            using (StreamWriter sw = new StreamWriter("ocr.txt"))
+            {
+                sw.Write("0, 0 (4) ");
+                TestRowCol(image23, gridDef, 0, 0, sw);
+                sw.Write("0, 2 (1) ");
+                TestRowCol(image23, gridDef, 0, 2, sw);
+                sw.Write("0, 5 (4) ");
+                TestRowCol(image23, gridDef, 0, 5, sw);
+                sw.Write("1, 4 (5) ");
+                TestRowCol(image23, gridDef, 1, 4, sw);
+                sw.Write("3, 0 (2) ");
+                TestRowCol(image23, gridDef, 3, 0, sw);
+                sw.Write("4, 2 (2) ");
+                TestRowCol(image23, gridDef, 4, 2, sw);
+                sw.Write("5, 4 (4) ");
+                TestRowCol(image23, gridDef, 5, 4, sw);
+            }
+
+
+        }
+    }
 
     
 }

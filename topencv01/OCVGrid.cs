@@ -29,7 +29,7 @@ namespace topencv01
         public int Rows, Cols;
         public Point TopLeft;
         public Point BottomRight;
-        private double RowSize, ColSize;
+        public double RowSize, ColSize;
         public int Width { get { return BottomRight.X - TopLeft.X; } }
         public int Height { get { return BottomRight.Y - TopLeft.Y; } }
 
