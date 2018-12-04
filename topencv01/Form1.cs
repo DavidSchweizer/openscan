@@ -20,10 +20,11 @@ namespace topencv01
     public partial class Form1 : Form
     {
 
-        Image<Bgr, Byte> img1;
+        Image<Bgr, Byte> imgOriginal;
         //Image<Bgr, Byte> img1 = new Image<Bgr, Byte>("c:/temp/test1.jpg");
-        UMat uimage = new UMat();
+        UMat matGrayScaleImage;
         Image<Bgr, Byte> lineImage;
+        Image<Bgr, Byte> lineImage2;
 
         public Form1()
         {
@@ -31,23 +32,23 @@ namespace topencv01
         }
 
 
-        private void LoadFile(string filename)
+        private void GrayScaleImage()
         {
-            img1 = new Image<Bgr, Byte>(filename);
-            pictureBox1.Image = img1.ToBitmap();
-            lineImage = img1.CopyBlank();
             //Convert the image to grayscale and filter out the noise
-            CvInvoke.CvtColor(img1, uimage, ColorConversion.Bgr2Gray);
+            matGrayScaleImage = new UMat();
+            CvInvoke.CvtColor(imgOriginal, matGrayScaleImage, ColorConversion.Bgr2Gray);
             //use image pyr to remove noise
             UMat pyrDown = new UMat();
-            CvInvoke.PyrDown(uimage, pyrDown);
-            CvInvoke.PyrUp(pyrDown, uimage);
-
-            //pictureBox2.Image = uimage.Bitmap;
+            CvInvoke.PyrDown(matGrayScaleImage, pyrDown);
+            CvInvoke.PyrUp(pyrDown, matGrayScaleImage);
+            pbGray.Image = matGrayScaleImage.Bitmap;
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private void LoadFile(string filename)
         {
+            imgOriginal = new Image<Bgr, Byte>(filename);
+            pbOriginal.Image = imgOriginal.ToBitmap();
+            GrayScaleImage();
         }
 
         private void pictureBox1_Click(object sender, EventArgs e)
@@ -67,7 +68,8 @@ namespace topencv01
             Double.TryParse(textBox1.Text, out cannyThreshold);
             Double.TryParse(textBox2.Text, out cannyThresholdLinking);
             UMat cannyEdges = new UMat();
-            CvInvoke.Canny(uimage, cannyEdges, cannyThreshold, cannyThresholdLinking);
+            CvInvoke.Canny(matGrayScaleImage, cannyEdges, cannyThreshold, cannyThresholdLinking);
+            pbEdges.Image = cannyEdges.Bitmap;
             return cannyEdges;
         }
 
@@ -93,16 +95,33 @@ namespace topencv01
                gap); //gap between lines
         }
 
+        private void DrawGrid(Image<Bgr, Byte> image, OCVGridDefinition gridDef, Bgr color)
+        {
+            for (int r = 0; r <= gridDef.Rows; r++)
+            {
+                image.Draw(new LineSegment2D(new Point(gridDef.TopLeft.X, gridDef.RowLocation(r)),
+                                             new Point(gridDef.TopLeft.X + gridDef.Width, gridDef.RowLocation(r))),
+                                                  color, 2);
+            }
+            for (int c = 0; c <= gridDef.Cols; c++)
+            {
+                image.Draw(new LineSegment2D(new Point(gridDef.ColLocation(c), gridDef.TopLeft.Y),
+                                                  new Point(gridDef.ColLocation(c), gridDef.TopLeft.Y + gridDef.Height)),
+                                                  color, 2);
+            }
+
+            image.Draw(new Rectangle(gridDef.TopLeft.X, gridDef.TopLeft.Y, gridDef.Width, gridDef.Height), color, 2);
+        }
 
         private void button2_Click(object sender, EventArgs e)
         {
-            button1_Click(this, e);
             UMat edges = FindEdges();
             LineSegment2D[] lines = FindLines(edges);
 
+            lineImage = imgOriginal.CopyBlank();
             foreach (LineSegment2D line in lines)
                 lineImage.Draw(line, new Bgr(Color.LightGreen), 2);
-            pictureBox2.Image = lineImage.Bitmap;
+            pbLines.Image = lineImage.Bitmap;
 
             using (StreamWriter sw = new StreamWriter("lines0.dmp"))
             {
@@ -152,27 +171,21 @@ namespace topencv01
                 if (summ.Length > 35)
                     image3.Draw(summ.Line, new Bgr(Color.LightPink), 2);
             }
-            pictureBox2.Image = image3.Bitmap;
+            pbGridLines.Image = image3.Bitmap;
 
-            Image<Bgr, Byte> lineImage2 = img1.CopyBlank();
+            Image<Bgr, Byte> lineImage2 = imgOriginal.CopyBlank();
             OCVGridDefinition gridDef = grid.Analyze();
-            listBox1.Items.Add(String.Format("{0} x {1}", gridDef.Rows, gridDef.Cols));
-            for (int r = 0; r <= gridDef.Rows; r++)
-            {
-                lineImage2.Draw(new LineSegment2D(new Point(gridDef.TopLeft.X, gridDef.RowLocation(r)),
-                                                  new Point(gridDef.TopLeft.X + gridDef.Width, gridDef.RowLocation(r))),
-                                                  new Bgr(Color.PeachPuff), 2);
-            }
-            for (int c = 0; c <= gridDef.Cols; c++)
-            {
-                lineImage2.Draw(new LineSegment2D(new Point(gridDef.ColLocation(c), gridDef.TopLeft.Y),
-                                                  new Point(gridDef.ColLocation(c), gridDef.TopLeft.Y + +gridDef.Height)),
-                                                  new Bgr(Color.MediumTurquoise), 2);
-            }
+            MessageBox.Show(String.Format("{0} x {1}", gridDef.Rows, gridDef.Cols));
+            DrawGrid(lineImage2, gridDef, new Bgr(Color.White));
+            pbGrid.Image = lineImage2.Bitmap;
 
-            lineImage2.Draw(new Rectangle(gridDef.TopLeft.X, gridDef.TopLeft.Y, gridDef.Width, gridDef.Height), new Bgr(Color.White), 2);
 
-            pictureBox3.Image = lineImage2.Bitmap;
+            Image<Bgr, Byte> lineImage4 = imgOriginal.Copy();
+            DrawGrid(lineImage4, gridDef, new Bgr(Color.Purple));
+            pbCombi.Image = lineImage4.Bitmap;
+
+
+            tabControl1.SelectedTab = tbCombi;
             testingpixels(gridDef);
             CharacterTest(gridDef);
         }
@@ -181,8 +194,8 @@ namespace topencv01
         {
             int threshold = 250;
 
-            Matrix<Byte> matrix = new Matrix<Byte>(uimage.Rows, uimage.Cols, uimage.NumberOfChannels);
-            uimage.CopyTo(matrix);
+            Matrix<Byte> matrix = new Matrix<Byte>(matGrayScaleImage.Rows, matGrayScaleImage.Cols, matGrayScaleImage.NumberOfChannels);
+            matGrayScaleImage.CopyTo(matrix);
             using (StreamWriter sw = new StreamWriter("pixels.dmp"))
             {
                 sw.WriteLine("------------------ROWS-------------------");
@@ -250,25 +263,65 @@ namespace topencv01
             if (ofd1.ShowDialog() == DialogResult.OK)
             {
                 LoadFile(ofd1.FileName);
+                button2.Enabled = true;
+                tabControl1.SelectedTab = tbControls;
             }
+            else
+                button2.Enabled = false;
         }
 
         Tesseract _ocr;
 
-        void TestRowCol(Image<Gray,Byte> image, OCVGridDefinition gridDef, int row, int col, StreamWriter sw)
+        Rectangle gridRect(OCVGridDefinition gridDef, int row, int col)
         {
-            image.ROI = new Rectangle( (int)(gridDef.TopLeft.X + col * gridDef.ColSize - 5)
-                                     , (int)(gridDef.TopLeft.Y + row * gridDef.RowSize - 5)
-                                     , (int)(gridDef.ColSize - 10),
-                                       (int)(gridDef.RowSize - 10));
-            _ocr.SetImage(image);
+            return new Rectangle((int)gridDef.ColLocation(col), (int)gridDef.RowLocation(row), (int)gridDef.ColSize, (int)gridDef.RowSize);
+        }
+        string TestRowCol(Image<Gray,Byte> image, OCVGridDefinition gridDef, int row, int col, StreamWriter sw)
+        {
+            const int MARGIN = 7;
+            string charFound;
+            Rectangle Rect = gridRect(gridDef, row, col);
+            Rect.X += MARGIN;
+            Rect.Y += MARGIN;
+            Rect.Width -= 2 * MARGIN;
+            Rect.Height -= 2 * MARGIN;
+            Image<Gray, Byte> hokje = image.Copy(Rect);
+            Image<Gray, Byte> hokje2 = hokje.CopyBlank();
+            CvInvoke.Threshold(hokje, hokje2, 100, 255, ThresholdType.Binary);
+            image.Draw(Rect, new Gray(25));
+
+             _ocr.SetImage(hokje2);
+            
             if (_ocr.Recognize() != 0)
                 throw new Exception("Failed to recognize zie image");
             Tesseract.Character[] characters = _ocr.GetCharacters();
             sw.WriteLine("{0} characters recognized", characters.Length);
+            charFound = "";
             foreach (Tesseract.Character ch in characters)
-                sw.WriteLine("{0} ({1})", ch.Text, ch.Cost);
+                if (ch.Text != " ")
+                {
+                    charFound = ch.Text;
+                    sw.WriteLine("{0} ({1})", ch.Text, ch.Cost);
+                }
+            if (charFound != "")
+            {
+                CvInvoke.PutText(image, charFound, new Point(Rect.Left, Rect.Top + 24), FontFace.HersheyPlain, 2, new MCvScalar(100));
 
+                //Matrix<Byte> matrix = new Matrix<Byte>(hokje.Rows, hokje.Cols, hokje.NumberOfChannels);
+                //hokje.CopyTo(matrix);
+
+                //for (int r =0; r < matrix.Width; r++)
+                //{
+                //    sw.Write("r {0}:", r);
+                //    for (int c = 0; c < matrix.Width; c++)
+                //        sw.Write("{0} ", matrix.Data[r, c]);
+                //    sw.WriteLine();
+                //}
+
+
+                return charFound;
+            }
+            return "";
         }
         void CharacterTest(OCVGridDefinition gridDef)
         {
@@ -279,25 +332,40 @@ namespace topencv01
             _ocr.SetVariable("tessedit_char_whitelist", "12345");
 
 
-            Image<Gray,Byte > image23 = uimage.ToImage<Gray, Byte>();
+            Image<Gray,Byte > image23 = matGrayScaleImage.ToImage<Gray, Byte>().Copy();
+            pbOCR.Image = image23.Bitmap;
+
             using (StreamWriter sw = new StreamWriter("ocr.txt"))
             {
-                sw.Write("0, 0 (4) ");
-                TestRowCol(image23, gridDef, 0, 0, sw);
-                sw.Write("0, 2 (1) ");
-                TestRowCol(image23, gridDef, 0, 2, sw);
-                sw.Write("0, 5 (4) ");
-                TestRowCol(image23, gridDef, 0, 5, sw);
-                sw.Write("1, 4 (5) ");
-                TestRowCol(image23, gridDef, 1, 4, sw);
-                sw.Write("3, 0 (2) ");
-                TestRowCol(image23, gridDef, 3, 0, sw);
-                sw.Write("4, 2 (2) ");
-                TestRowCol(image23, gridDef, 4, 2, sw);
-                sw.Write("5, 4 (4) ");
-                TestRowCol(image23, gridDef, 5, 4, sw);
+                for (int row = 0; row < gridDef.Rows; row++)
+                    for (int col = 0; col < gridDef.Cols; col++)
+                       
+                    {
+                        sw.Write("({0},{1}):", row, col);
+                        string charFound = TestRowCol(image23, gridDef, row, col, sw);
+                        if (charFound.Trim() != "")
+                            sw.WriteLine(charFound);
+                        else
+                            sw.WriteLine();
+
+                    }
             }
 
+
+        }
+
+        private void pictureBox2_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void button2_Click_1(object sender, EventArgs e)
+        {
+            button2_Click(sender, e);
+        }
+
+        private void tbOriginal_Click(object sender, EventArgs e)
+        {
 
         }
     }

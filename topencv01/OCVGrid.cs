@@ -51,7 +51,6 @@ namespace topencv01
         {
             return (int)(TopLeft.X + col * ColSize);
         }
-
     }
 
     class OCVGrid
@@ -81,7 +80,22 @@ namespace topencv01
                     VerticalLines.RemoveAt(i);
                 else i++;
         }
-        public OCVGridDefinition Analyze(double threshold)
+
+        private void RemoveInconsistentLines(List<OCVCombinedLinesData> lines, double blocksize, double threshold)
+        {
+            int i = 1;
+            while (i < lines.Count - 1)
+            {
+                double diff1 = lines[i].midRange - lines[i - 1].midRange;
+                double diff2 = lines[i].midRange - lines[i + 1].midRange;
+                if (Math.Abs(diff1 / blocksize) < (1 - threshold) || Math.Abs(diff2 / blocksize) < (1 - threshold))
+                    lines.RemoveAt(i);
+                else
+                    i++;
+            }
+        }
+
+        private OCVGridDefinition Analyze(double threshold)
         {
             double left = OCVConst.REALLYLARGE, top = OCVConst.REALLYLARGE, right = -OCVConst.REALLYLARGE, bottom = -OCVConst.REALLYLARGE;
             // remove lines that are too small
@@ -130,6 +144,8 @@ namespace topencv01
             {
                 double rowsize = tempResult.Width / (tempResult.Rows + 1);
                 double colsize = tempResult.Width / (tempResult.Cols + 1);
+                RemoveInconsistentLines(HorizontalLines, colsize, 0.45);
+                RemoveInconsistentLines(VerticalLines, rowsize, 0.45);
                 return Analyze(((rowsize > colsize) ? rowsize : colsize) - 5);
             }
             return null;
