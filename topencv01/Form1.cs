@@ -177,7 +177,9 @@ namespace topencv01
 
             Image<Bgr, Byte> lineImage2 = imgOriginal.CopyBlank();
             OCVGridDefinition gridDef = grid.Analyze();
-            MessageBox.Show(String.Format("{0} x {1}", gridDef.Rows, gridDef.Cols));
+
+
+            MessageBox.Show(String.Format("{0} x {1} [delta: {2}]", gridDef.Rows, gridDef.Cols, grid.Delta(gridData, gridDef)));
             DrawGrid(lineImage2, gridDef, new Bgr(Color.White));
             pbGrid.Image = lineImage2.Bitmap;
 

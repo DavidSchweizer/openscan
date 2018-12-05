@@ -114,7 +114,7 @@ namespace topencv01
             return result;
         }
 
-    private OCVGridDefinition Analyze(double threshold)
+        private OCVGridDefinition Analyze(double threshold)
         {
             double left = OCVConst.REALLYLARGE;
             double right = -OCVConst.REALLYLARGE;
@@ -128,6 +128,33 @@ namespace topencv01
                                                              rows, cols
                                                             );
             return result;
+        }
+        public double Delta(OCVGridData data, OCVGridDefinition grid)
+        {
+            double result = 0;
+            int row = 0;
+            foreach (OCVLineData line in data.HorizontalLines)
+            {
+                if (row < grid.Rows)
+                {
+                    result += Math.Abs(line.GetLocation() - grid.RowLocation(row));
+                    row++;
+                }
+                else
+                    result += Math.Abs(line.GetLocation() - grid.RowLocation(grid.Rows-1));
+            }
+            int col = 0;
+            foreach (OCVLineData line in data.VerticalLines)
+            {
+                if (col < grid.Cols)
+                {
+                    result += Math.Abs(line.GetLocation() - grid.ColLocation(col));
+                    row++;
+                }
+                else
+                    result += Math.Abs(line.GetLocation() - grid.ColLocation(grid.Cols - 1));
+            }
+            return result / (grid.Rows + grid.Cols);
         }
         public OCVGridDefinition Analyze()
         {
