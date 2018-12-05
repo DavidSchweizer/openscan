@@ -41,6 +41,8 @@ namespace topencv01
             UMat pyrDown = new UMat();
             CvInvoke.PyrDown(matGrayScaleImage, pyrDown);
             CvInvoke.PyrUp(pyrDown, matGrayScaleImage);
+            UMat mat2 = matGrayScaleImage.Clone();
+            CvInvoke.Threshold(mat2, matGrayScaleImage, 200, 255, ThresholdType.Binary);
             pbGray.Image = matGrayScaleImage.Bitmap;
         }
 

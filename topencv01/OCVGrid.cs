@@ -95,45 +95,37 @@ namespace topencv01
             }
         }
 
-        private OCVGridDefinition Analyze(double threshold)
+        private int AnalyzeLinesGroup(List<OCVCombinedLinesData> lines, ref double a1, ref double a2, ref double b1, ref double b2)
         {
-            double left = OCVConst.REALLYLARGE, top = OCVConst.REALLYLARGE, right = -OCVConst.REALLYLARGE, bottom = -OCVConst.REALLYLARGE;
-            // remove lines that are too small
-            RemoveSmallLines(threshold);
-            // analyze horizontal lines
-            int rows = -1;
-            foreach (OCVCombinedLinesData linesGroup in HorizontalLines)
+            int result = -1;
+            foreach (OCVCombinedLinesData linesGroup in lines)
             {
-                rows++;
+                result++;
                 OCVLineData summaryLine = linesGroup.GetSummaryLine();
-                if (summaryLine.GetMinValue() < left)
-                    left = summaryLine.GetMinValue();
-                if (summaryLine.GetMaxValue() > right)
-                    right = summaryLine.GetMaxValue();
-                if (summaryLine.GetY() > top)
-                    top = summaryLine.GetY();
-                if (summaryLine.GetY() < bottom)
-                    bottom = summaryLine.GetY();
+                if (summaryLine.GetMinValue() < a1)
+                    a1 = summaryLine.GetMinValue();
+                if (summaryLine.GetMaxValue() > a2)
+                    a2 = summaryLine.GetMaxValue();
+                if (summaryLine.GetLocation() < b1)
+                    b1 = summaryLine.GetLocation();
+                if (summaryLine.GetLocation() > b2)
+                    b2 = summaryLine.GetLocation();
             }
+            return result;
+        }
 
-            // analyze vertical lines
-            int cols = -1;
-            foreach (OCVCombinedLinesData linesGroup in VerticalLines)
-            {
-                cols++;
-                OCVLineData summaryLine = linesGroup.GetSummaryLine();
-                if (summaryLine.GetX() < left)
-                    left = summaryLine.GetX();
-                if (summaryLine.GetX() > right)
-                    right = summaryLine.GetX();
-                if (summaryLine.GetMinValue() < top)
-                    top = summaryLine.GetMinValue();
-                if (summaryLine.GetMaxValue() > bottom)
-                    bottom = summaryLine.GetMaxValue();
-            }
+    private OCVGridDefinition Analyze(double threshold)
+        {
+            double left = OCVConst.REALLYLARGE;
+            double right = -OCVConst.REALLYLARGE;
+            double top = OCVConst.REALLYLARGE;
+            double bottom = -OCVConst.REALLYLARGE;
+            RemoveSmallLines(threshold);
+            int rows = AnalyzeLinesGroup(HorizontalLines, ref left, ref right, ref top, ref bottom);            
+            int cols = AnalyzeLinesGroup(VerticalLines, ref top, ref bottom, ref left, ref right);
             OCVGridDefinition result = new OCVGridDefinition(new Point((int)left, (int)top),
-                                                            new Point((int)right, (int)bottom),
-                                                            rows, cols
+                                                             new Point((int)right, (int)bottom),
+                                                             rows, cols
                                                             );
             return result;
         }
@@ -227,6 +219,13 @@ namespace topencv01
         public double GetY()
         {
             return 0.5 * (Math.Round((double)Line.P1.Y + Math.Round((double)Line.P2.Y)));
+        }
+        public double GetLocation()
+        {
+            if (IsHorizontal())
+                return GetY();
+            else
+                return GetX();
         }
         public double HorizontalDistance(OCVLineData line2)
         {

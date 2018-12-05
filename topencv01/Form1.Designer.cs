@@ -55,11 +55,11 @@
             this.tbGrid = new System.Windows.Forms.TabPage();
             this.pbGrid = new System.Windows.Forms.PictureBox();
             this.tbCombi = new System.Windows.Forms.TabPage();
-            this.button2 = new System.Windows.Forms.Button();
-            this.bLoad = new System.Windows.Forms.Button();
             this.pbCombi = new System.Windows.Forms.PictureBox();
             this.tbOCR = new System.Windows.Forms.TabPage();
             this.pbOCR = new System.Windows.Forms.PictureBox();
+            this.button2 = new System.Windows.Forms.Button();
+            this.bLoad = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
@@ -112,9 +112,9 @@
             // 
             this.tabControl1.Controls.Add(this.tbOriginal);
             this.tabControl1.Controls.Add(this.tbGrey);
+            this.tabControl1.Controls.Add(this.tbControls);
             this.tabControl1.Controls.Add(this.tbEdges);
             this.tabControl1.Controls.Add(this.tbLines);
-            this.tabControl1.Controls.Add(this.tbControls);
             this.tabControl1.Controls.Add(this.tbGridLines);
             this.tabControl1.Controls.Add(this.tbGrid);
             this.tabControl1.Controls.Add(this.tbCombi);
@@ -237,7 +237,7 @@
             this.textBox5.Name = "textBox5";
             this.textBox5.Size = new System.Drawing.Size(96, 26);
             this.textBox5.TabIndex = 27;
-            this.textBox5.Text = "1";
+            this.textBox5.Text = "2";
             // 
             // label5
             // 
@@ -256,7 +256,7 @@
             this.textBox4.Name = "textBox4";
             this.textBox4.Size = new System.Drawing.Size(96, 26);
             this.textBox4.TabIndex = 25;
-            this.textBox4.Text = "2";
+            this.textBox4.Text = "3";
             // 
             // label4
             // 
@@ -275,7 +275,7 @@
             this.textBox3.Name = "textBox3";
             this.textBox3.Size = new System.Drawing.Size(96, 26);
             this.textBox3.TabIndex = 23;
-            this.textBox3.Text = "2";
+            this.textBox3.Text = "3";
             // 
             // label3
             // 
@@ -375,29 +375,6 @@
             this.tbCombi.Text = "image+grid";
             this.tbCombi.UseVisualStyleBackColor = true;
             // 
-            // button2
-            // 
-            this.button2.Enabled = false;
-            this.button2.Location = new System.Drawing.Point(210, 20);
-            this.button2.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.button2.Name = "button2";
-            this.button2.Size = new System.Drawing.Size(112, 35);
-            this.button2.TabIndex = 20;
-            this.button2.Text = "Find Grid";
-            this.button2.UseVisualStyleBackColor = true;
-            this.button2.Click += new System.EventHandler(this.button2_Click);
-            // 
-            // bLoad
-            // 
-            this.bLoad.Location = new System.Drawing.Point(25, 20);
-            this.bLoad.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.bLoad.Name = "bLoad";
-            this.bLoad.Size = new System.Drawing.Size(126, 56);
-            this.bLoad.TabIndex = 19;
-            this.bLoad.Text = "Load";
-            this.bLoad.UseVisualStyleBackColor = true;
-            this.bLoad.Click += new System.EventHandler(this.button3_Click);
-            // 
             // pbCombi
             // 
             this.pbCombi.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -427,6 +404,29 @@
             this.pbOCR.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
             this.pbOCR.TabIndex = 6;
             this.pbOCR.TabStop = false;
+            // 
+            // button2
+            // 
+            this.button2.Enabled = false;
+            this.button2.Location = new System.Drawing.Point(210, 20);
+            this.button2.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.button2.Name = "button2";
+            this.button2.Size = new System.Drawing.Size(112, 35);
+            this.button2.TabIndex = 20;
+            this.button2.Text = "Find Grid";
+            this.button2.UseVisualStyleBackColor = true;
+            this.button2.Click += new System.EventHandler(this.button2_Click);
+            // 
+            // bLoad
+            // 
+            this.bLoad.Location = new System.Drawing.Point(25, 20);
+            this.bLoad.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.bLoad.Name = "bLoad";
+            this.bLoad.Size = new System.Drawing.Size(126, 56);
+            this.bLoad.TabIndex = 19;
+            this.bLoad.Text = "Load";
+            this.bLoad.UseVisualStyleBackColor = true;
+            this.bLoad.Click += new System.EventHandler(this.button3_Click);
             // 
             // Form1
             // 
