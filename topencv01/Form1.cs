@@ -24,7 +24,7 @@ namespace topencv01
         //Image<Bgr, Byte> img1 = new Image<Bgr, Byte>("c:/temp/test1.jpg");
         UMat matGrayScaleImage;
         Image<Bgr, Byte> lineImage;
-        Image<Bgr, Byte> lineImage2;
+       
 
         public Form1()
         {
@@ -41,6 +41,14 @@ namespace topencv01
             UMat pyrDown = new UMat();
             CvInvoke.PyrDown(matGrayScaleImage, pyrDown);
             CvInvoke.PyrUp(pyrDown, matGrayScaleImage);
+
+            // gaat nog niet jofel met gekleurd plaatje
+            double[] minValues = new double[1];
+            double[] maxValues = new double[1];
+            Point[] minLocations = new Point[1];
+            Point[] maxLocations = new Point[1];
+            matGrayScaleImage.MinMax(out minValues, out maxValues, out minLocations, out maxLocations);
+
             UMat mat2 = matGrayScaleImage.Clone();
             //CvInvoke.Threshold(mat2, matGrayScaleImage, 200, 255, ThresholdType.Binary);
             pbGray.Image = matGrayScaleImage.Bitmap;
@@ -203,25 +211,42 @@ namespace topencv01
             CharacterTest(gridDef);
         }
 
+        int FindThresholdAndWidth(OCVGridDefinition gridDef, out int testWidth)
+        {
+            double[] minValues = new double[1];
+            double[] maxValues = new double[1];
+            Point[] minLocations = new Point[1];
+            Point[] maxLocations = new Point[1];
+            testWidth = (int)(gridDef.ColSize * 0.1);
+            matGrayScaleImage.MinMax(out minValues, out maxValues, out minLocations, out maxLocations);
+            int threshold = 200;
+            while (minValues[0] > threshold + 10 || maxValues[0] < threshold - 10)
+                threshold++;
+            return threshold;
+        }
         private void testingpixels(OCVGridDefinition gridDef)
         {
-            int threshold = 250;
+            int testWidth = 10;
+            int threshold = FindThresholdAndWidth(gridDef, out testWidth);
+            double[,] RightandBottomBorderValues;
 
             Matrix<Byte> matrix = new Matrix<Byte>(matGrayScaleImage.Rows, matGrayScaleImage.Cols, matGrayScaleImage.NumberOfChannels);
             matGrayScaleImage.CopyTo(matrix);
+            RightandBottomBorderValues = new double[gridDef.Rows, gridDef.Cols];
+
             using (StreamWriter sw = new StreamWriter("pixels.dmp"))
             {
-                sw.WriteLine("------------------ROWS-------------------");
+                //                sw.WriteLine("------------------ROWS-------------------");
                 for (int r = 0; r < gridDef.Rows; r++)
                 {
                     int rowLoc = (int)(gridDef.RowLocation(r) + gridDef.RowSize * 0.5);
-                    sw.WriteLine("*** row: {0}    (loc: {1})", r, rowLoc);
+                    //                    sw.WriteLine("*** row: {0}    (loc: {1})", r, rowLoc);
                     for (int c = 1; c < gridDef.Cols; c++)
                     {
                         int loc = gridDef.ColLocation(c);
-                        sw.WriteLine("col {0}  location {1}", c, loc);
+                        //sw.WriteLine("col {0}  location {1}", c, loc);
                         int nBelow = 0;
-                        for (int col = loc - 10; col < loc + 10; col++)
+                        for (int col = loc - testWidth; col < loc + testWidth; col++)
                         {
                             if (col < 0 || col >= matrix.Cols)
                                 continue;
@@ -230,21 +255,30 @@ namespace topencv01
                                 nBelow++;
                             //sw.WriteLine("row: {0}  col: {1}  : {2}", row, col, value);
                         }
-                        sw.WriteLine("col {0}  pct: {1} %", c, (nBelow / 20.0) * 100);
+                        RightandBottomBorderValues[r, c] = (nBelow / (2.0 * testWidth));
+                        //                        sw.WriteLine("col {0}  pct: {1} %", c, RightandBottomBorderValues[r,c] * 100);
                     }
-                    sw.WriteLine("***");
+                    //                  sw.WriteLine("***");
                 }
-                sw.WriteLine("------------------COLUMNS-------------------");
+                sw.WriteLine("ROWS:");
+                for (int r = 0; r < gridDef.Rows; r++)
+                {
+                    sw.Write("Row {0,2}:", r);
+                    for (int c = 0; c < gridDef.Cols; c++)
+                        sw.Write("{0,3} ", (int)(RightandBottomBorderValues[r, c] * 100));
+                    sw.WriteLine();
+                }
+                // sw.WriteLine("------------------COLUMNS-------------------");
                 for (int c = 0; c < gridDef.Cols; c++)
                 {
                     int colLoc = (int)(gridDef.ColLocation(c) + gridDef.ColSize * 0.5);
-                    sw.WriteLine("*** col: {0}    (loc: {1})", c, colLoc);
+                    //                    sw.WriteLine("*** col: {0}    (loc: {1})", c, colLoc);
                     for (int r = 1; r < gridDef.Rows; r++)
                     {
                         int loc = gridDef.RowLocation(r);
-                        sw.WriteLine("row {0}  location {1}", r, loc);
+                        //                      sw.WriteLine("row {0}  location {1}", r, loc);
                         int nBelow = 0;
-                        for (int row = loc - 10; row < loc + 10; row++)
+                        for (int row = loc - testWidth; row < loc + testWidth; row++)
                         {
                             if (row < 0 || row >= matrix.Cols)
                                 continue;
@@ -253,12 +287,20 @@ namespace topencv01
                                 nBelow++;
                             //sw.WriteLine("row: {0}  col: {1}  : {2}", row, col, value);
                         }
-                        sw.WriteLine("row {0}  pct: {1} %", r, (nBelow / 20.0) * 100);
+                        RightandBottomBorderValues[r, c] = (nBelow / (2.0 * testWidth));
+                        //                        sw.WriteLine("row {0}  pct: {1} %", r, RightandBottomBorderValues[r, c] * 100);
                     }
-                    sw.WriteLine("***");
+                    //sw.WriteLine("***");
+                }
+                sw.WriteLine("COLS:");
+                for (int c = 0; c < gridDef.Cols; c++)
+                {
+                    sw.Write("Col {0,2}:", c);
+                    for (int r = 0; r < gridDef.Rows; r++)
+                        sw.Write("{0,3} ", (int)(RightandBottomBorderValues[r, c] * 100));
+                    sw.WriteLine();
                 }
             }
-
         }
 
         private void textBox3_TextChanged(object sender, EventArgs e)
