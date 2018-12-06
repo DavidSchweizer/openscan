@@ -26,7 +26,10 @@ namespace topencv01
 
     public class OCVGridDefinition
     {
-        public int Rows, Cols;
+        private int _rows, _cols;
+        public int Rows { get { return _rows; } set { _rows = value; RowSize = (1.0 * Height) / _rows; } }
+        public int Cols { get { return _cols; } set { _cols = value; ColSize = (1.0 * Width) / _cols; } }
+                
         public Point TopLeft;
         public Point BottomRight;
         public double RowSize, ColSize;
@@ -39,10 +42,10 @@ namespace topencv01
             BottomRight = bottomRight;
             Rows = rows;
             Cols = cols;
-            ColSize = (1.0 * (BottomRight.X - TopLeft.X) / Cols);
-            RowSize = (1.0 * (BottomRight.Y - TopLeft.Y) / Rows);
         }
-
+        public OCVGridDefinition(OCVGridDefinition gridDef): this(gridDef.TopLeft, gridDef.BottomRight, gridDef.Rows, gridDef.Cols)
+        {
+        }
         public int RowLocation(int row)
         {
             return (int)(TopLeft.Y + row * RowSize);

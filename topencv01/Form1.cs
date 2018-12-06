@@ -42,7 +42,7 @@ namespace topencv01
             CvInvoke.PyrDown(matGrayScaleImage, pyrDown);
             CvInvoke.PyrUp(pyrDown, matGrayScaleImage);
             UMat mat2 = matGrayScaleImage.Clone();
-            CvInvoke.Threshold(mat2, matGrayScaleImage, 200, 255, ThresholdType.Binary);
+            //CvInvoke.Threshold(mat2, matGrayScaleImage, 200, 255, ThresholdType.Binary);
             pbGray.Image = matGrayScaleImage.Bitmap;
         }
 
@@ -179,10 +179,19 @@ namespace topencv01
             OCVGridDefinition gridDef = grid.Analyze();
 
 
-            MessageBox.Show(String.Format("{0} x {1} [delta: {2}]", gridDef.Rows, gridDef.Cols, grid.Delta(gridData, gridDef)));
+//            MessageBox.Show(String.Format("{0} x {1} [delta: {2}]", gridDef.Rows, gridDef.Cols, grid.Delta(gridData, gridDef)));
+
+            using (GridSizeForm gridForm = new GridSizeForm())
+            {
+                gridForm.LoadImage(imgOriginal);
+                gridForm.SetGridDef(gridDef);
+                if (gridForm.ShowDialog() == DialogResult.OK)
+                {
+                    gridDef = gridForm.GetGridDef();                                   
+                }                    
+            }
             DrawGrid(lineImage2, gridDef, new Bgr(Color.White));
             pbGrid.Image = lineImage2.Bitmap;
-
 
             Image<Bgr, Byte> lineImage4 = imgOriginal.Copy();
             DrawGrid(lineImage4, gridDef, new Bgr(Color.Purple));
