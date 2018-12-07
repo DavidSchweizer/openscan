@@ -35,10 +35,6 @@
             this.pbOriginal = new System.Windows.Forms.PictureBox();
             this.tbGrey = new System.Windows.Forms.TabPage();
             this.pbGray = new System.Windows.Forms.PictureBox();
-            this.tbEdges = new System.Windows.Forms.TabPage();
-            this.pbEdges = new System.Windows.Forms.PictureBox();
-            this.tbLines = new System.Windows.Forms.TabPage();
-            this.pbLines = new System.Windows.Forms.PictureBox();
             this.tbControls = new System.Windows.Forms.TabPage();
             this.textBox5 = new System.Windows.Forms.TextBox();
             this.label5 = new System.Windows.Forms.Label();
@@ -50,8 +46,10 @@
             this.label2 = new System.Windows.Forms.Label();
             this.textBox1 = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
-            this.tbGridLines = new System.Windows.Forms.TabPage();
-            this.pbGridLines = new System.Windows.Forms.PictureBox();
+            this.tbEdges = new System.Windows.Forms.TabPage();
+            this.pbEdges = new System.Windows.Forms.PictureBox();
+            this.tbLines = new System.Windows.Forms.TabPage();
+            this.pbLines = new System.Windows.Forms.PictureBox();
             this.tbGrid = new System.Windows.Forms.TabPage();
             this.pbGrid = new System.Windows.Forms.PictureBox();
             this.tbCombi = new System.Windows.Forms.TabPage();
@@ -60,6 +58,9 @@
             this.pbOCR = new System.Windows.Forms.PictureBox();
             this.button2 = new System.Windows.Forms.Button();
             this.bLoad = new System.Windows.Forms.Button();
+            this.tbAnalyzed = new System.Windows.Forms.TabPage();
+            this.pbAnalyzed = new System.Windows.Forms.PictureBox();
+            this.bBoard = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
@@ -69,19 +70,19 @@
             ((System.ComponentModel.ISupportInitialize)(this.pbOriginal)).BeginInit();
             this.tbGrey.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbGray)).BeginInit();
+            this.tbControls.SuspendLayout();
             this.tbEdges.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbEdges)).BeginInit();
             this.tbLines.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbLines)).BeginInit();
-            this.tbControls.SuspendLayout();
-            this.tbGridLines.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.pbGridLines)).BeginInit();
             this.tbGrid.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbGrid)).BeginInit();
             this.tbCombi.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbCombi)).BeginInit();
             this.tbOCR.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbOCR)).BeginInit();
+            this.tbAnalyzed.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pbAnalyzed)).BeginInit();
             this.SuspendLayout();
             // 
             // ofd1
@@ -102,6 +103,7 @@
             // 
             // splitContainer1.Panel2
             // 
+            this.splitContainer1.Panel2.Controls.Add(this.bBoard);
             this.splitContainer1.Panel2.Controls.Add(this.button2);
             this.splitContainer1.Panel2.Controls.Add(this.bLoad);
             this.splitContainer1.Size = new System.Drawing.Size(586, 665);
@@ -111,11 +113,11 @@
             // tabControl1
             // 
             this.tabControl1.Controls.Add(this.tbOriginal);
-            this.tabControl1.Controls.Add(this.tbGrey);
             this.tabControl1.Controls.Add(this.tbControls);
+            this.tabControl1.Controls.Add(this.tbGrey);
             this.tabControl1.Controls.Add(this.tbEdges);
             this.tabControl1.Controls.Add(this.tbLines);
-            this.tabControl1.Controls.Add(this.tbGridLines);
+            this.tabControl1.Controls.Add(this.tbAnalyzed);
             this.tabControl1.Controls.Add(this.tbGrid);
             this.tabControl1.Controls.Add(this.tbCombi);
             this.tabControl1.Controls.Add(this.tbOCR);
@@ -170,46 +172,6 @@
             this.pbGray.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
             this.pbGray.TabIndex = 1;
             this.pbGray.TabStop = false;
-            // 
-            // tbEdges
-            // 
-            this.tbEdges.Controls.Add(this.pbEdges);
-            this.tbEdges.Location = new System.Drawing.Point(4, 29);
-            this.tbEdges.Name = "tbEdges";
-            this.tbEdges.Size = new System.Drawing.Size(578, 532);
-            this.tbEdges.TabIndex = 2;
-            this.tbEdges.Text = "Edges";
-            this.tbEdges.UseVisualStyleBackColor = true;
-            // 
-            // pbEdges
-            // 
-            this.pbEdges.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.pbEdges.Location = new System.Drawing.Point(0, 0);
-            this.pbEdges.Name = "pbEdges";
-            this.pbEdges.Size = new System.Drawing.Size(578, 532);
-            this.pbEdges.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
-            this.pbEdges.TabIndex = 0;
-            this.pbEdges.TabStop = false;
-            // 
-            // tbLines
-            // 
-            this.tbLines.Controls.Add(this.pbLines);
-            this.tbLines.Location = new System.Drawing.Point(4, 29);
-            this.tbLines.Name = "tbLines";
-            this.tbLines.Size = new System.Drawing.Size(578, 532);
-            this.tbLines.TabIndex = 3;
-            this.tbLines.Text = "Lines";
-            this.tbLines.UseVisualStyleBackColor = true;
-            // 
-            // pbLines
-            // 
-            this.pbLines.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.pbLines.Location = new System.Drawing.Point(0, 0);
-            this.pbLines.Name = "pbLines";
-            this.pbLines.Size = new System.Drawing.Size(578, 532);
-            this.pbLines.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
-            this.pbLines.TabIndex = 1;
-            this.pbLines.TabStop = false;
             // 
             // tbControls
             // 
@@ -325,25 +287,45 @@
             this.label1.TabIndex = 18;
             this.label1.Text = "CannyTreshold:";
             // 
-            // tbGridLines
+            // tbEdges
             // 
-            this.tbGridLines.Controls.Add(this.pbGridLines);
-            this.tbGridLines.Location = new System.Drawing.Point(4, 29);
-            this.tbGridLines.Name = "tbGridLines";
-            this.tbGridLines.Size = new System.Drawing.Size(578, 532);
-            this.tbGridLines.TabIndex = 6;
-            this.tbGridLines.Text = "Grid(lines)";
-            this.tbGridLines.UseVisualStyleBackColor = true;
+            this.tbEdges.Controls.Add(this.pbEdges);
+            this.tbEdges.Location = new System.Drawing.Point(4, 29);
+            this.tbEdges.Name = "tbEdges";
+            this.tbEdges.Size = new System.Drawing.Size(578, 532);
+            this.tbEdges.TabIndex = 2;
+            this.tbEdges.Text = "Edges";
+            this.tbEdges.UseVisualStyleBackColor = true;
             // 
-            // pbGridLines
+            // pbEdges
             // 
-            this.pbGridLines.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.pbGridLines.Location = new System.Drawing.Point(0, 0);
-            this.pbGridLines.Name = "pbGridLines";
-            this.pbGridLines.Size = new System.Drawing.Size(578, 532);
-            this.pbGridLines.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
-            this.pbGridLines.TabIndex = 3;
-            this.pbGridLines.TabStop = false;
+            this.pbEdges.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.pbEdges.Location = new System.Drawing.Point(0, 0);
+            this.pbEdges.Name = "pbEdges";
+            this.pbEdges.Size = new System.Drawing.Size(578, 532);
+            this.pbEdges.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.pbEdges.TabIndex = 0;
+            this.pbEdges.TabStop = false;
+            // 
+            // tbLines
+            // 
+            this.tbLines.Controls.Add(this.pbLines);
+            this.tbLines.Location = new System.Drawing.Point(4, 29);
+            this.tbLines.Name = "tbLines";
+            this.tbLines.Size = new System.Drawing.Size(578, 532);
+            this.tbLines.TabIndex = 3;
+            this.tbLines.Text = "Lines";
+            this.tbLines.UseVisualStyleBackColor = true;
+            // 
+            // pbLines
+            // 
+            this.pbLines.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.pbLines.Location = new System.Drawing.Point(0, 0);
+            this.pbLines.Name = "pbLines";
+            this.pbLines.Size = new System.Drawing.Size(578, 532);
+            this.pbLines.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.pbLines.TabIndex = 1;
+            this.pbLines.TabStop = false;
             // 
             // tbGrid
             // 
@@ -428,6 +410,38 @@
             this.bLoad.UseVisualStyleBackColor = true;
             this.bLoad.Click += new System.EventHandler(this.button3_Click);
             // 
+            // tbAnalyzed
+            // 
+            this.tbAnalyzed.Controls.Add(this.pbAnalyzed);
+            this.tbAnalyzed.Location = new System.Drawing.Point(4, 29);
+            this.tbAnalyzed.Name = "tbAnalyzed";
+            this.tbAnalyzed.Padding = new System.Windows.Forms.Padding(3);
+            this.tbAnalyzed.Size = new System.Drawing.Size(578, 532);
+            this.tbAnalyzed.TabIndex = 9;
+            this.tbAnalyzed.Text = "Analyzed";
+            this.tbAnalyzed.UseVisualStyleBackColor = true;
+            // 
+            // pbAnalyzed
+            // 
+            this.pbAnalyzed.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.pbAnalyzed.Location = new System.Drawing.Point(3, 3);
+            this.pbAnalyzed.Name = "pbAnalyzed";
+            this.pbAnalyzed.Size = new System.Drawing.Size(572, 526);
+            this.pbAnalyzed.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.pbAnalyzed.TabIndex = 1;
+            this.pbAnalyzed.TabStop = false;
+            // 
+            // bBoard
+            // 
+            this.bBoard.Location = new System.Drawing.Point(369, 20);
+            this.bBoard.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.bBoard.Name = "bBoard";
+            this.bBoard.Size = new System.Drawing.Size(112, 35);
+            this.bBoard.TabIndex = 21;
+            this.bBoard.Text = "Create puzzle";
+            this.bBoard.UseVisualStyleBackColor = true;
+            this.bBoard.Click += new System.EventHandler(this.bBoard_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
@@ -446,20 +460,20 @@
             ((System.ComponentModel.ISupportInitialize)(this.pbOriginal)).EndInit();
             this.tbGrey.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.pbGray)).EndInit();
+            this.tbControls.ResumeLayout(false);
+            this.tbControls.PerformLayout();
             this.tbEdges.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.pbEdges)).EndInit();
             this.tbLines.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.pbLines)).EndInit();
-            this.tbControls.ResumeLayout(false);
-            this.tbControls.PerformLayout();
-            this.tbGridLines.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.pbGridLines)).EndInit();
             this.tbGrid.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.pbGrid)).EndInit();
             this.tbCombi.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.pbCombi)).EndInit();
             this.tbOCR.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.pbOCR)).EndInit();
+            this.tbAnalyzed.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.pbAnalyzed)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -487,8 +501,6 @@
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.TextBox textBox1;
         private System.Windows.Forms.Label label1;
-        private System.Windows.Forms.TabPage tbGridLines;
-        private System.Windows.Forms.PictureBox pbGridLines;
         private System.Windows.Forms.TabPage tbGrid;
         private System.Windows.Forms.PictureBox pbGrid;
         private System.Windows.Forms.TabPage tbCombi;
@@ -497,6 +509,9 @@
         private System.Windows.Forms.PictureBox pbCombi;
         private System.Windows.Forms.TabPage tbOCR;
         private System.Windows.Forms.PictureBox pbOCR;
+        private System.Windows.Forms.TabPage tbAnalyzed;
+        private System.Windows.Forms.PictureBox pbAnalyzed;
+        private System.Windows.Forms.Button bBoard;
     }
 }
 
