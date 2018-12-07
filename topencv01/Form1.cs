@@ -207,97 +207,194 @@ namespace topencv01
 
 
             tabControl1.SelectedTab = tbCombi;
-            testingpixels(gridDef);
+            bool[,] RightAreaBorders, BottomAreaBorders;
+            AnalyzeBorders(gridDef, out RightAreaBorders, out BottomAreaBorders);
             CharacterTest(gridDef);
         }
 
-        int FindThresholdAndWidth(OCVGridDefinition gridDef, out int testWidth)
+        int FindThresholdAndWidth(Matrix<byte> matrix, OCVGridDefinition gridDef, out int testWidth)
         {
+            const int MAXBIN = 10;
             double[] minValues = new double[1];
             double[] maxValues = new double[1];
             Point[] minLocations = new Point[1];
             Point[] maxLocations = new Point[1];
             testWidth = (int)(gridDef.ColSize * 0.1);
-            matGrayScaleImage.MinMax(out minValues, out maxValues, out minLocations, out maxLocations);
-            int threshold = 200;
-            while (minValues[0] > threshold + 10 || maxValues[0] < threshold - 10)
-                threshold++;
-            return threshold;
+            //matGrayScaleImage.MinMax(out minValues, out maxValues, out minLocations, out maxLocations);
+            //int threshold = 200;
+            //while (minValues[0] > threshold + 10 || maxValues[0] < threshold - 10)
+            //    threshold++;
+            int[] binLimits;
+            int[] frequencyDistribution = FrequencyDistribution(matrix, MAXBIN, out binLimits);
+            int i = MAXBIN;
+            int maxi = i;
+            while (--i >= 0)
+            {
+                if (frequencyDistribution[i] > frequencyDistribution[maxi])
+                    maxi = i;
+            }
+            if (maxi > 0)
+                return binLimits[maxi - 1];
+            else
+                return binLimits[0];
         }
-        private void testingpixels(OCVGridDefinition gridDef)
+
+        private int[] FrequencyDistribution(Matrix<byte> matrix, int nBins, out int[] binLimits)
+        {
+            int[] result = new int[nBins+1];
+            binLimits = new int[nBins+1];
+            for (int i = 0; i < nBins; i++)
+                binLimits[i] = (i+1) * (255 / nBins);
+            binLimits[nBins] = 255;
+            for (int r = 0; r < matrix.Rows; r++)
+                for (int c = 0; c < matrix.Cols; c++)
+                {
+                    int i = 0;
+                    while (i <= nBins)
+                        if (matrix.Data[r, c] <= binLimits[i])
+                        {
+                            result[i]++;
+                            break;
+                        }
+                        else i++;
+                }
+            using (StreamWriter sw = new StreamWriter("bins.log"))
+            {
+                //for (int r = 0; r < matrix.Rows; r++)
+                //{
+                //    sw.Write("{0,3}:", r);
+                //    for (int c = 0; c < matrix.Cols; c++)
+                //        sw.Write("{0,3} ", matrix.Data[r, c]);
+                //    sw.WriteLine();
+                //}
+
+                sw.WriteLine("total pixels: {0}", matrix.Rows * matrix.Cols);
+                for (int i = 0; i <= nBins; i++)
+                {
+                    sw.WriteLine("Bin {0,3} ({1,3}): {2}", i, binLimits[i], result[i]);
+                }
+            }
+                return result;
+        }
+
+        int[,] FindRowValues(Matrix<byte> matrix, OCVGridDefinition gridDef, int testWidth, int threshold)
+        {
+            int[,] result = new int[gridDef.Rows, gridDef.Cols];
+            for (int r = 0; r < gridDef.Rows; r++)
+            {
+                int rowLoc = (int)(gridDef.RowLocation(r) + gridDef.RowSize * 0.5);
+                for (int c = 0; c < gridDef.Cols; c++)
+                {
+                    int loc = gridDef.ColLocation(c);
+                    int nBelow = 0;
+                    for (int col = loc - testWidth; col < loc + testWidth; col++)
+                    {
+                        if (col < 0 || col >= matrix.Cols)
+                            continue;
+                        byte value = matrix.Data[rowLoc, col];
+                        if (value < threshold)
+                            nBelow++;
+                    }
+                    result[r, c] = (int)(100 * (nBelow / (2.0 * testWidth)));
+                }
+            }
+            return result;
+        }
+        int[,] FindColValues(Matrix<byte> matrix, OCVGridDefinition gridDef, int testWidth, int threshold)
+        {
+            int[,] result = new int[gridDef.Rows, gridDef.Cols];
+
+            for (int c = 0; c < gridDef.Cols; c++)
+            {
+                int colLoc = (int)(gridDef.ColLocation(c) + gridDef.ColSize * 0.5);
+                for (int r = 0; r < gridDef.Rows; r++)
+                {
+                    int loc = gridDef.RowLocation(r);
+                    int nBelow = 0;
+                    for (int row = loc - testWidth; row < loc + testWidth; row++)
+                    {
+                        if (row < 0 || row >= matrix.Rows)
+                            continue;
+                        byte value = matrix.Data[row, colLoc];
+                        if (value < threshold)
+                            nBelow++;
+                    }
+                    result[r, c] = (int)(100 * (nBelow / (2.0 * testWidth)));
+                }
+            }
+            return result;
+        }
+
+        private int GetThreshold(int[,] Values)
+        {
+            int rows = Values.GetLength(0);
+            int cols = Values.GetLength(1);
+            List<int> AllValues = new List<int>();
+            foreach (int value in Values)
+                if (!AllValues.Contains(value))
+                    AllValues.Add(value);
+            AllValues.Sort();
+            int result = AllValues.Min();
+            int maxGap = 0;
+            for (int i = 1; i < AllValues.Count; i++)
+            {
+                int gap = AllValues[i] - AllValues[i - 1];
+                if (gap > maxGap)
+                {
+                    maxGap = gap;
+                    result = AllValues[i-1];
+                }
+            }
+            return result;
+        }
+        private bool[,] AnalyzeBorderValues(int[,] BorderValues)
+        {
+            int rows = BorderValues.GetLength(0);
+            int cols = BorderValues.GetLength(1);
+            bool[,] result = new bool[rows, cols];
+            int threshold = GetThreshold(BorderValues);
+            for (int r = 0; r < rows; r++)
+                for (int c = 0; c < cols; c++)
+                    result[r, c] = (BorderValues[r, c] > threshold);
+            return result;
+        }
+
+        public void AnalyzeBorders(UMat matGray, OCVGridDefinition gridDef, out bool[,] RightAreaBorders, out bool [,] BottomAreaBorders)
         {
             int testWidth = 10;
-            int threshold = FindThresholdAndWidth(gridDef, out testWidth);
-            double[,] RightandBottomBorderValues;
+            int[,] RightBorderValues;
+            int[,] BottomBorderValues;
 
-            Matrix<Byte> matrix = new Matrix<Byte>(matGrayScaleImage.Rows, matGrayScaleImage.Cols, matGrayScaleImage.NumberOfChannels);
-            matGrayScaleImage.CopyTo(matrix);
-            RightandBottomBorderValues = new double[gridDef.Rows, gridDef.Cols];
+            Matrix<Byte> matrix = new Matrix<Byte>(matGray.Rows, matGray.Cols, matGray.NumberOfChannels);
+            matGray.CopyTo(matrix);
+            int threshold = FindThresholdAndWidth(matrix, gridDef, out testWidth);
+            RightBorderValues = FindRowValues(matrix, gridDef, testWidth, threshold);
+            BottomBorderValues = FindColValues(matrix, gridDef, testWidth, threshold);
+            RightAreaBorders = AnalyzeBorderValues(RightBorderValues);
+            BottomAreaBorders = AnalyzeBorderValues(BottomBorderValues);
 
             using (StreamWriter sw = new StreamWriter("pixels.dmp"))
             {
-                //                sw.WriteLine("------------------ROWS-------------------");
-                for (int r = 0; r < gridDef.Rows; r++)
-                {
-                    int rowLoc = (int)(gridDef.RowLocation(r) + gridDef.RowSize * 0.5);
-                    //                    sw.WriteLine("*** row: {0}    (loc: {1})", r, rowLoc);
-                    for (int c = 1; c < gridDef.Cols; c++)
-                    {
-                        int loc = gridDef.ColLocation(c);
-                        //sw.WriteLine("col {0}  location {1}", c, loc);
-                        int nBelow = 0;
-                        for (int col = loc - testWidth; col < loc + testWidth; col++)
-                        {
-                            if (col < 0 || col >= matrix.Cols)
-                                continue;
-                            byte value = matrix.Data[rowLoc, col];
-                            if (value < threshold)
-                                nBelow++;
-                            //sw.WriteLine("row: {0}  col: {1}  : {2}", row, col, value);
-                        }
-                        RightandBottomBorderValues[r, c] = (nBelow / (2.0 * testWidth));
-                        //                        sw.WriteLine("col {0}  pct: {1} %", c, RightandBottomBorderValues[r,c] * 100);
-                    }
-                    //                  sw.WriteLine("***");
-                }
+
+                sw.WriteLine("threshold: {0}   testwidth: {1}", threshold, testWidth);
                 sw.WriteLine("ROWS:");
                 for (int r = 0; r < gridDef.Rows; r++)
                 {
                     sw.Write("Row {0,2}:", r);
                     for (int c = 0; c < gridDef.Cols; c++)
-                        sw.Write("{0,3} ", (int)(RightandBottomBorderValues[r, c] * 100));
+                        sw.Write(" {0}({1,3}) ", RightAreaBorders[r, c] ? "B" : " ", 
+                                                RightBorderValues[r, c]);
                     sw.WriteLine();
                 }
-                // sw.WriteLine("------------------COLUMNS-------------------");
-                for (int c = 0; c < gridDef.Cols; c++)
-                {
-                    int colLoc = (int)(gridDef.ColLocation(c) + gridDef.ColSize * 0.5);
-                    //                    sw.WriteLine("*** col: {0}    (loc: {1})", c, colLoc);
-                    for (int r = 1; r < gridDef.Rows; r++)
-                    {
-                        int loc = gridDef.RowLocation(r);
-                        //                      sw.WriteLine("row {0}  location {1}", r, loc);
-                        int nBelow = 0;
-                        for (int row = loc - testWidth; row < loc + testWidth; row++)
-                        {
-                            if (row < 0 || row >= matrix.Cols)
-                                continue;
-                            byte value = matrix.Data[row, colLoc];
-                            if (value < threshold)
-                                nBelow++;
-                            //sw.WriteLine("row: {0}  col: {1}  : {2}", row, col, value);
-                        }
-                        RightandBottomBorderValues[r, c] = (nBelow / (2.0 * testWidth));
-                        //                        sw.WriteLine("row {0}  pct: {1} %", r, RightandBottomBorderValues[r, c] * 100);
-                    }
-                    //sw.WriteLine("***");
-                }
+
+
                 sw.WriteLine("COLS:");
                 for (int c = 0; c < gridDef.Cols; c++)
                 {
                     sw.Write("Col {0,2}:", c);
                     for (int r = 0; r < gridDef.Rows; r++)
-                        sw.Write("{0,3} ", (int)(RightandBottomBorderValues[r, c] * 100));
+                        sw.Write("{0} ({1,3}) ", BottomAreaBorders[r, c] ? "B" : " ",
+                                                BottomBorderValues[r, c]);
                     sw.WriteLine();
                 }
             }
