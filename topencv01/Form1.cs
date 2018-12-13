@@ -185,31 +185,10 @@ namespace topencv01
         }
         public void CreateBoard()
         {
-            TekBorderAnalyzer borders = new TekBorderAnalyzer(GridAnalyzer.matGrayScaleImage, GridAnalyzer.gridDef);
-            TekCharacterRecognition characters = new TekCharacterRecognition(GridAnalyzer.matGrayScaleImage, GridAnalyzer.gridDef);
-            TekBoard board = new TekBoard(GridAnalyzer.gridDef.Rows, GridAnalyzer.gridDef.Cols);
-            for (int r = 0; r < board.Rows; r++)
-                for (int c = 0; c < board.Cols; c++)
-                    if (characters.Values[r, c] > 0)
-                    {
-                        board.Fields[r, c].Value = characters.Values[r, c];
-                        board.Fields[r, c].Initial = true;
-                    }
-            TekFields fields = new TekFields();
-            //int r = 0;
-            //int c = 0;
-            //while (r < board.Rows && c < board.Cols)
-            //{ 
-            //    TekField field = board.Fields[r, c];
-            //    if (field.Area != null)
-            //       continue;
-            //    if (r == 0 || c == 0)
-            //        fields.AddField(field);
-            //    if (!borders.RightAreaBorders[r, c])
-            //        c++;
-            //    else if (!borders.(think this through, this is more complicated)
-            //    }
-        }
+            TekBoardAnalyzer BoardAnalyzer = new TekBoardAnalyzer(GridAnalyzer);
+            TekBoardParser parser = new TekBoardParser();
+            parser.Export(BoardAnalyzer.Board, "export.tx");            
+         }
     }
 
     

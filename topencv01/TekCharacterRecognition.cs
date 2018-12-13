@@ -15,15 +15,14 @@ namespace topencv01
 {
     class TekCharacterRecognition
     {
+        public string TessDataPath = @"C:\Program Files (x86)\Tesseract-OCR\tessdata";
         private Tesseract _ocr;
         public int[,] Values;
 
         public TekCharacterRecognition(UMat matGray, OCVGridDefinition gridDef)
         {
-            const string dataPath = @"C:\Program Files (x86)\Tesseract-OCR\tessdata";
-
             //create OCR engine
-            _ocr = new Tesseract(dataPath, "eng", OcrEngineMode.TesseractLstmCombined);
+            _ocr = new Tesseract(TessDataPath, "eng", OcrEngineMode.TesseractOnly);
             _ocr.SetVariable("tessedit_char_whitelist", "12345");
             Values = new int[gridDef.Rows, gridDef.Cols];
             Image<Gray, Byte> testImage = matGray.ToImage<Gray, Byte>().Copy();

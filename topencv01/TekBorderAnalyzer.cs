@@ -14,21 +14,21 @@ namespace topencv01
 {
     class TekBorderAnalyzer
     {
-        public bool[,] BottomAreaBorders;
-        public bool[,] RightAreaBorders;
+        public bool[,] TopAreaBorders;
+        public bool[,] LeftAreaBorders;
         public TekBorderAnalyzer(UMat matGray, OCVGridDefinition gridDef)
         {
             int testWidth = 10;
-            int[,] RightBorderValues;
-            int[,] BottomBorderValues;
+            int[,] LeftBorderValues;
+            int[,] TopBorderValues;
 
             Matrix<Byte> matrix = new Matrix<Byte>(matGray.Rows, matGray.Cols, matGray.NumberOfChannels);
             matGray.CopyTo(matrix);
             int threshold = FindThresholdAndWidth(matrix, gridDef, out testWidth);
-            RightBorderValues = FindRowValues(matrix, gridDef, testWidth, threshold);
-            BottomBorderValues = FindColValues(matrix, gridDef, testWidth, threshold);
-            RightAreaBorders = AnalyzeBorderValues(RightBorderValues);
-            BottomAreaBorders = AnalyzeBorderValues(BottomBorderValues);
+            LeftBorderValues = FindRowValues(matrix, gridDef, testWidth, threshold);
+            TopBorderValues = FindColValues(matrix, gridDef, testWidth, threshold);
+            LeftAreaBorders = AnalyzeBorderValues(LeftBorderValues);
+            TopAreaBorders = AnalyzeBorderValues(TopBorderValues);
         }
 
         private int FindThresholdAndWidth(Matrix<byte> matrix, OCVGridDefinition gridDef, out int testWidth)
