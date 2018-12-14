@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Drawing;
+using System.IO;
 using Emgu.CV;
 using Emgu.CV.CvEnum;
 using Emgu.CV.Structure;
@@ -16,6 +17,8 @@ namespace topencv01
     {
         public bool[,] BottomAreaBorders;
         public bool[,] RightAreaBorders;
+        public int Rows { get { return BottomAreaBorders.GetLength(0); } }
+        public int Cols { get { return BottomAreaBorders.GetLength(1); } }
         public TekBorderAnalyzer(UMat matGray, OCVGridDefinition gridDef)
         {
             int testWidth = 10;
@@ -159,7 +162,40 @@ namespace topencv01
                     result[r, c] = (BorderValues[r, c] > threshold);
             return result;
         }
-
+        public void Dump(StreamWriter sw)
+        {
+            for (int r = 0; r < Rows; r++)
+            {
+                if (r == 0)
+                {
+                    sw.Write("  \u2506");
+                    for (int c = 0; c < Cols; c++)
+                        sw.Write("{0,2}", c);
+                    sw.WriteLine();
+                }
+                for (int c = 0; c < Cols; c++)
+                {
+                    if (c == 0)
+                        sw.Write("{0,2}:", r);
+                    sw.Write(" ");
+                    if (RightAreaBorders[r, c])
+                        sw.Write("|");
+                    else
+                        sw.Write(" ");
+                }
+                sw.WriteLine();
+                for (int c = 0; c < Cols; c++)
+                {
+                    if (c == 0)
+                        sw.Write("   ");
+                    if (BottomAreaBorders[r, c])
+                        sw.Write("__");
+                    else
+                        sw.Write("  ");
+                }
+                sw.WriteLine();
+            }
+        }
 
     }
 }

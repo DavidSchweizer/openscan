@@ -186,6 +186,8 @@ namespace topencv01
         public void CreateBoard()
         {
             TekBorderAnalyzer borders = new TekBorderAnalyzer(GridAnalyzer.matGrayScaleImage, GridAnalyzer.gridDef);
+            using (StreamWriter sw = new StreamWriter("border.log"))
+            { borders.Dump(sw); }
             TekCharacterRecognition characters = new TekCharacterRecognition(GridAnalyzer.matGrayScaleImage, GridAnalyzer.gridDef);
             TekBoard board = new TekBoard(GridAnalyzer.gridDef.Rows, GridAnalyzer.gridDef.Cols);
             for (int r = 0; r < board.Rows; r++)
