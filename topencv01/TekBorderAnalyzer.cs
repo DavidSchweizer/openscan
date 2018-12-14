@@ -15,23 +15,42 @@ namespace topencv01
 {
     class TekBorderAnalyzer
     {
-        public bool[,] BottomAreaBorders;
-        public bool[,] RightAreaBorders;
-        public int Rows { get { return BottomAreaBorders.GetLength(0); } }
-        public int Cols { get { return BottomAreaBorders.GetLength(1); } }
+        public bool[,] TopAreaBorders;
+        public bool[,] LeftAreaBorders;
+        public int Rows { get { return TopAreaBorders.GetLength(0); } }
+        public int Cols { get { return TopAreaBorders.GetLength(1); } }
         public TekBorderAnalyzer(UMat matGray, OCVGridDefinition gridDef)
         {
             int testWidth = 10;
-            int[,] RightBorderValues;
-            int[,] BottomBorderValues;
+            int[,] LeftBorderValues;
+            int[,] TopBorderValues;
 
             Matrix<Byte> matrix = new Matrix<Byte>(matGray.Rows, matGray.Cols, matGray.NumberOfChannels);
             matGray.CopyTo(matrix);
             int threshold = FindThresholdAndWidth(matrix, gridDef, out testWidth);
-            RightBorderValues = FindRowValues(matrix, gridDef, testWidth, threshold);
-            BottomBorderValues = FindColValues(matrix, gridDef, testWidth, threshold);
-            RightAreaBorders = AnalyzeBorderValues(RightBorderValues);
-            BottomAreaBorders = AnalyzeBorderValues(BottomBorderValues);
+            LeftBorderValues = FindRowValues(matrix, gridDef, testWidth, threshold);
+            TopBorderValues = FindColValues(matrix, gridDef, testWidth, threshold);
+            using (StreamWriter sw = new StreamWriter("bordjes.log"))
+            {
+                LeftAreaBorders = AnalyzeBorderValues(LeftBorderValues);
+                sw.WriteLine("Left Area Border values:");
+                for (int r = 0; r < LeftAreaBorders.GetLength(0); r++)
+                {
+                    sw.Write("row {0}:", r);
+                    for (int c = 0; c < LeftAreaBorders.GetLength(1); c++)
+                        sw.Write("{0}{1}  ", LeftBorderValues[r, c], LeftAreaBorders[r, c] ? "T" : " ");
+                    sw.WriteLine();
+                }
+                TopAreaBorders = AnalyzeBorderValues(TopBorderValues);
+                sw.WriteLine("Top Area Border values:");
+                for (int r = 0; r < TopAreaBorders.GetLength(0); r++)
+                {
+                    sw.Write("row {0}:", r);
+                    for (int c = 0; c < TopAreaBorders.GetLength(1); c++)
+                        sw.Write("{0}{1}  ", TopBorderValues[r, c], TopAreaBorders[r, c] ? "T" : " ");
+                    sw.WriteLine();
+                }
+            }
         }
 
         private int FindThresholdAndWidth(Matrix<byte> matrix, OCVGridDefinition gridDef, out int testWidth)
@@ -162,40 +181,50 @@ namespace topencv01
                     result[r, c] = (BorderValues[r, c] > threshold);
             return result;
         }
+
+        private void DumpCell(StreamWriter sw, int row, int col, int lineno)
+        {
+            switch (lineno)
+            {
+                case 0: // top
+                    if (row == 0 || TopAreaBorders[row - 1, col])
+                        sw.Write("===");
+                    else
+                        sw.Write("...");
+                    break;
+                case 1: // middle
+                    if (col == 0 || LeftAreaBorders[row, col - 1])
+                        sw.Write("|");
+                    else
+                        sw.Write(".");
+                    sw.Write(" ");
+                    //right
+                    if (col == Cols - 1 || LeftAreaBorders[row, col + 1])
+                        sw.Write("|");
+                    else
+                        sw.Write(".");
+                    break;
+                case 2: //bottom
+                    if (row == Rows-1 || TopAreaBorders[row, col])
+                        sw.Write("===");
+                    else
+                        sw.Write("...");
+                    break;
+            }
+        }
         public void Dump(StreamWriter sw)
         {
             for (int r = 0; r < Rows; r++)
             {
-                if (r == 0)
+                for (int l = 0; l < 2; l++)
                 {
-                    sw.Write("  \u2506");
                     for (int c = 0; c < Cols; c++)
-                        sw.Write("{0,2}", c);
+                    {
+                        DumpCell(sw, r, c, l);
+                    }
                     sw.WriteLine();
                 }
-                for (int c = 0; c < Cols; c++)
-                {
-                    if (c == 0)
-                        sw.Write("{0,2}:", r);
-                    sw.Write(" ");
-                    if (RightAreaBorders[r, c])
-                        sw.Write("|");
-                    else
-                        sw.Write(" ");
-                }
-                sw.WriteLine();
-                for (int c = 0; c < Cols; c++)
-                {
-                    if (c == 0)
-                        sw.Write("   ");
-                    if (BottomAreaBorders[r, c])
-                        sw.Write("__");
-                    else
-                        sw.Write("  ");
-                }
-                sw.WriteLine();
             }
         }
-
     }
 }
