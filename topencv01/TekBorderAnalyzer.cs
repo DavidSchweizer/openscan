@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Drawing;
+using System.IO;
 using Emgu.CV;
 using Emgu.CV.CvEnum;
 using Emgu.CV.Structure;
@@ -16,6 +17,8 @@ namespace topencv01
     {
         public bool[,] TopAreaBorders;
         public bool[,] LeftAreaBorders;
+        public int Rows { get { return TopAreaBorders.GetLength(0); } }
+        public int Cols { get { return TopAreaBorders.GetLength(1); } }
         public TekBorderAnalyzer(UMat matGray, OCVGridDefinition gridDef)
         {
             int testWidth = 10;
@@ -27,8 +30,27 @@ namespace topencv01
             int threshold = FindThresholdAndWidth(matrix, gridDef, out testWidth);
             LeftBorderValues = FindRowValues(matrix, gridDef, testWidth, threshold);
             TopBorderValues = FindColValues(matrix, gridDef, testWidth, threshold);
-            LeftAreaBorders = AnalyzeBorderValues(LeftBorderValues);
-            TopAreaBorders = AnalyzeBorderValues(TopBorderValues);
+            using (StreamWriter sw = new StreamWriter("bordjes.log"))
+            {
+                LeftAreaBorders = AnalyzeBorderValues(LeftBorderValues);
+                sw.WriteLine("Left Area Border values:");
+                for (int r = 0; r < LeftAreaBorders.GetLength(0); r++)
+                {
+                    sw.Write("row {0}:", r);
+                    for (int c = 0; c < LeftAreaBorders.GetLength(1); c++)
+                        sw.Write("{0}{1}  ", LeftBorderValues[r, c], LeftAreaBorders[r, c] ? "T" : " ");
+                    sw.WriteLine();
+                }
+                TopAreaBorders = AnalyzeBorderValues(TopBorderValues);
+                sw.WriteLine("Top Area Border values:");
+                for (int r = 0; r < TopAreaBorders.GetLength(0); r++)
+                {
+                    sw.Write("row {0}:", r);
+                    for (int c = 0; c < TopAreaBorders.GetLength(1); c++)
+                        sw.Write("{0}{1}  ", TopBorderValues[r, c], TopAreaBorders[r, c] ? "T" : " ");
+                    sw.WriteLine();
+                }
+            }
         }
 
         private int FindThresholdAndWidth(Matrix<byte> matrix, OCVGridDefinition gridDef, out int testWidth)
@@ -160,6 +182,49 @@ namespace topencv01
             return result;
         }
 
-
+        private void DumpCell(StreamWriter sw, int row, int col, int lineno)
+        {
+            switch (lineno)
+            {
+                case 0: // top
+                    if (row == 0 || TopAreaBorders[row - 1, col])
+                        sw.Write("===");
+                    else
+                        sw.Write("...");
+                    break;
+                case 1: // middle
+                    if (col == 0 || LeftAreaBorders[row, col - 1])
+                        sw.Write("|");
+                    else
+                        sw.Write(".");
+                    sw.Write(" ");
+                    //right
+                    if (col == Cols - 1 || LeftAreaBorders[row, col + 1])
+                        sw.Write("|");
+                    else
+                        sw.Write(".");
+                    break;
+                case 2: //bottom
+                    if (row == Rows-1 || TopAreaBorders[row, col])
+                        sw.Write("===");
+                    else
+                        sw.Write("...");
+                    break;
+            }
+        }
+        public void Dump(StreamWriter sw)
+        {
+            for (int r = 0; r < Rows; r++)
+            {
+                for (int l = 0; l < 2; l++)
+                {
+                    for (int c = 0; c < Cols; c++)
+                    {
+                        DumpCell(sw, r, c, l);
+                    }
+                    sw.WriteLine();
+                }
+            }
+        }
     }
 }
